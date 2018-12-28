@@ -56,7 +56,7 @@ class RepositoryPlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.pluginManager.apply(FeatureBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
-    project.extensions.add("eclipseRepository", RepositoryExtension(project))
+    project.extensions.add("repository", RepositoryExtension(project))
     project.afterEvaluate { configure(this) }
   }
 

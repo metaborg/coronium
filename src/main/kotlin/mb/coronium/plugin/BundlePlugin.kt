@@ -102,7 +102,7 @@ class BundlePlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.pluginManager.apply(BundleBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
-    project.extensions.add("eclipsePlugin", BundleExtension(project))
+    project.extensions.add("bundle", BundleExtension(project))
     project.afterEvaluate { configure(this) }
   }
 
@@ -243,7 +243,7 @@ class BundlePlugin : Plugin<Project> {
         }
         if(properties.outputDir != null) {
           @Suppress("UnstableApiUsage")
-          outputDir = project.file(properties.outputDir!!)
+          outputDir = project.file(properties.outputDir)
         }
       }
     }

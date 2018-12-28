@@ -44,7 +44,7 @@ class FeaturePlugin : Plugin<Project> {
     project.pluginManager.apply(BundleBasePlugin::class)
     project.pluginManager.apply(FeatureBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
-    project.extensions.add("eclipseFeature", FeatureExtension(project))
+    project.extensions.add("feature", FeatureExtension(project))
     project.afterEvaluate { configure(this) }
   }
 
@@ -159,6 +159,7 @@ class FeaturePlugin : Plugin<Project> {
         include("feature.xml")
       }
       doFirst {
+        targetFeaturesDir.deleteRecursively()
         targetFeaturesDir.mkdirs()
       }
     }
