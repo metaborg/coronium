@@ -131,8 +131,9 @@ class FeaturePlugin : Plugin<Project> {
     // Build feature.xml from the feature model.
     val featureXmlDir = project.buildDir.resolve("featureXml")
     val featureXmlTask = project.tasks.create("featureXmlTask") {
-      // Depend on bundle configuration because dependencies in this configuration affect the feature model.
+      // Depend on (files from) bundle configuration because dependencies in this configuration affect the feature model.
       dependsOn(bundleConfig)
+      inputs.files(bundleConfig)
       val featureXmlFile = featureXmlDir.resolve("feature.xml").toPath()
       outputs.file(featureXmlFile)
       doLast {
@@ -167,6 +168,7 @@ class FeaturePlugin : Plugin<Project> {
     val targetPluginsDir = targetDir.resolve("plugins")
     val copyBundlesTask = project.tasks.create("copyBundles") {
       dependsOn(bundleConfig)
+      inputs.files(bundleConfig)
       outputs.dir(targetPluginsDir)
       doFirst {
         targetPluginsDir.deleteRecursively()
@@ -193,6 +195,7 @@ class FeaturePlugin : Plugin<Project> {
     // Run Eclipse with direct dependencies.
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
       dependsOn(bundleConfig)
+      inputs.files(bundleConfig)
       setFromMavenizedEclipseInstallation(mavenized)
       doFirst {
         for(file in bundleConfig.resolvedConfiguration.firstLevelModuleDependencies.flatMap { it.moduleArtifacts }.map { it.file }) {

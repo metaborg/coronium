@@ -3,7 +3,10 @@ package mb.coronium.plugin
 import mb.coronium.mavenize.toEclipse
 import mb.coronium.model.eclipse.Repository
 import mb.coronium.model.maven.MavenVersion
-import mb.coronium.plugin.internal.*
+import mb.coronium.plugin.internal.FeatureBasePlugin
+import mb.coronium.plugin.internal.MavenizePlugin
+import mb.coronium.plugin.internal.featureConfig
+import mb.coronium.plugin.internal.mavenizedEclipseInstallation
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.*
@@ -119,6 +122,7 @@ class RepositoryPlugin : Plugin<Project> {
     unpackFeaturesDir.mkdirs()
     val unpackFeaturesTask = project.tasks.create("unpackFeatures") {
       dependsOn(featureConfig)
+      inputs.files(featureConfig)
       outputs.dir(unpackFeaturesDir)
       doFirst {
         unpackFeaturesDir.deleteRecursively()
@@ -194,8 +198,9 @@ class RepositoryPlugin : Plugin<Project> {
     // Build repository.xml from repository model.
     val repositoryXmlFile = project.buildDir.resolve("repositoryXml/repository.xml").toPath()
     val createRepositoryXmlTask = project.tasks.create("createRepositoryXml") {
-      // Depend on feature configuration because dependencies in this configuration affect the repository model.
+      // Depend on (files from) feature configuration because dependencies in this configuration affect the repository model.
       dependsOn(featureConfig)
+      inputs.files(featureConfig)
       outputs.file(repositoryXmlFile)
       doLast {
         Files.createDirectories(repositoryXmlFile.parent)
