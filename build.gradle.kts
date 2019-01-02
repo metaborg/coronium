@@ -1,31 +1,14 @@
-import mb.gitonium.GitoniumExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-// HACK: load our plugin via buildscript classpath and apply to work around IntelliJ bug which prevents custom plugins in composite builds.
-buildscript {
-  repositories {
-    flatDir { dirs("../gitonium/build/libs") }
-    mavenCentral()
-    jcenter()
-  }
-  dependencies {
-    classpath("org.metaborg", "gitonium", "develop-SNAPSHOT")
-    classpath("org.eclipse.jgit:org.eclipse.jgit:5.2.0.201812061821-r")
-  }
-}
-apply {
-  plugin("org.metaborg.gitonium")
-}
 
 plugins {
   // Stick with version 1.3.10 because the kotlin-dsl plugin uses that.
   kotlin("jvm") version "1.3.10" apply true
   `kotlin-dsl`
   `java-gradle-plugin`
+  id("org.metaborg.gitonium") version "0.3.0"
 }
 
 group = "org.metaborg"
-version = the<GitoniumExtension>().version
 
 repositories {
   mavenCentral()
