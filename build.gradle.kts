@@ -5,14 +5,14 @@ plugins {
   kotlin("jvm") version "1.3.10" apply true
   `kotlin-dsl`
   `java-gradle-plugin`
+  `maven-publish`
   id("org.metaborg.gitonium") version "0.3.0"
 }
 
 group = "org.metaborg"
 
 repositories {
-  mavenCentral()
-  jcenter()
+  maven(url = "http://home.gohla.nl:8091/artifactory/all/")
 }
 
 dependencies {
@@ -69,5 +69,18 @@ tasks {
   }
   register("cleanAll") {
     dependsOn("clean")
+  }
+}
+
+publishing {
+  repositories {
+    maven {
+      name = "Artifactory"
+      url = uri("http://192.168.1.3:8091/artifactory/all/")
+      credentials {
+        username = project.findProperty("publish.repository.Artifactory.username")?.toString()
+        password = project.findProperty("publish.repository.Artifactory.password")?.toString()
+      }
+    }
   }
 }
