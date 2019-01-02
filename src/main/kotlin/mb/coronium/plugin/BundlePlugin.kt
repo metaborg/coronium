@@ -207,10 +207,11 @@ class BundlePlugin : Plugin<Project> {
     // Build a final manifest from the existing manifest and the bundle model, and set it in the JAR task.
     val jarTask = project.tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
     val prepareManifestTask = project.tasks.create("prepareManifestTask") {
+      // Depend on (files from) bundle configuration, because it influence how a bundle model is built, which in turn influences the final manifest.
+      dependsOn(bundleConfig)
+      inputs.files(bundleConfig)
       // Depend on manifest file, because it influences how the manifest is created, which in turn influences the final manifest.
       inputs.files(manifestFile)
-      // Depend on bundle configuration, because it influence how a bundle model is built, which in turn influences the final manifest.
-      dependsOn(bundleConfig)
       doLast {
         if(manifest != null) {
           jarTask.manifest.attributes(manifest.mainAttributes.toStringMap())
@@ -264,6 +265,7 @@ class BundlePlugin : Plugin<Project> {
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
       dependsOn(jarTask)
       dependsOn(bundleConfig)
+      inputs.files(bundleConfig)
       setFromMavenizedEclipseInstallation(mavenized)
       doFirst {
         addBundle(jarTask)
