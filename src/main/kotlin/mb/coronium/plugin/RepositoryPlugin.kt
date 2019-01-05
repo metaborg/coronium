@@ -292,9 +292,9 @@ class RepositoryPlugin : Plugin<Project> {
                   versionNode.appendChild(doc.createTextNode(dependency.version))
                   dependencyNode.appendChild(versionNode)
 
-                  val packagingNode = doc.createElement("packaging")
-                  packagingNode.appendChild(doc.createTextNode("feature"))
-                  dependencyNode.appendChild(packagingNode)
+                  val typeNode = doc.createElement("type")
+                  typeNode.appendChild(doc.createTextNode("feature"))
+                  dependencyNode.appendChild(typeNode)
 
                   val scopeNode = doc.createElement("scope")
                   scopeNode.appendChild(doc.createTextNode("provided"))
