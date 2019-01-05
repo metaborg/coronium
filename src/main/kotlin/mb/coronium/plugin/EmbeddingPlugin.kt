@@ -17,7 +17,7 @@ import org.gradle.kotlin.dsl.getByName
 
 @Suppress("unused")
 open class EmbeddingExtension(private val project: Project) {
-  var createPublication: Boolean = true
+  var createPublication: Boolean = false
 
   val bundleVersion: String get() = project.eclipseVersion.toString()
 }

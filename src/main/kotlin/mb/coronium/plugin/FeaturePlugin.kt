@@ -24,7 +24,7 @@ import java.nio.file.Files
 
 @Suppress("unused")
 open class FeatureExtension(private val project: Project) {
-  var createPublication: Boolean = true
+  var createPublication: Boolean = false
 
   private val bundleConfig = project.bundleConfig
 

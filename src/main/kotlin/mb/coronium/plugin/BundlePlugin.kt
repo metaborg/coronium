@@ -23,7 +23,7 @@ import java.nio.file.Files
 
 @Suppress("unused")
 open class BundleExtension(private val project: Project) {
-  var createPublication: Boolean = true
+  var createPublication: Boolean = false
 
   private val bundleImplementationConfig = project.bundleImplementationConfig
   private val bundleImplementationProvidedConfig = project.bundleImplementationProvidedConfig
