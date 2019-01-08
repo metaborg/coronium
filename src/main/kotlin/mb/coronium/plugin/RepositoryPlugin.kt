@@ -3,10 +3,7 @@ package mb.coronium.plugin
 import mb.coronium.mavenize.toEclipse
 import mb.coronium.model.eclipse.Repository
 import mb.coronium.model.maven.MavenVersion
-import mb.coronium.plugin.internal.FeatureBasePlugin
-import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.featureConfig
-import mb.coronium.plugin.internal.mavenizedEclipseInstallation
+import mb.coronium.plugin.internal.*
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.*
@@ -263,16 +260,21 @@ class RepositoryPlugin : Plugin<Project> {
     // Add the result of the ZIP task as an artifact in the 'repository' configuration.
     var artifact: PublishArtifact? = null
     project.artifacts {
-      artifact = add(repositoryConfig.name, zipRepositoryTask)
+      artifact = add(repositoryConfig.name, zipRepositoryTask) {
+        this.extension = "zip"
+        this.type = "repository"
+      }
     }
     if(extension.createPublication) {
       // Add artifact as main publication.
       project.pluginManager.withPlugin("maven-publish") {
         project.extensions.configure<PublishingExtension> {
           publications.create<MavenPublication>("Repository") {
-            artifact(artifact)
+            artifact(artifact) {
+              this.extension = "zip"
+            }
             pom {
-              packaging = "repository"
+              packaging = "zip"
               withXml {
                 val root = asElement()
                 val doc = root.ownerDocument
@@ -291,10 +293,6 @@ class RepositoryPlugin : Plugin<Project> {
                   val versionNode = doc.createElement("version")
                   versionNode.appendChild(doc.createTextNode(dependency.version))
                   dependencyNode.appendChild(versionNode)
-
-                  val typeNode = doc.createElement("type")
-                  typeNode.appendChild(doc.createTextNode("feature"))
-                  dependencyNode.appendChild(typeNode)
 
                   val scopeNode = doc.createElement("scope")
                   scopeNode.appendChild(doc.createTextNode("provided"))

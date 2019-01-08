@@ -196,7 +196,10 @@ class FeaturePlugin : Plugin<Project> {
     // Add the result of the JAR task as an artifact in the 'feature' configuration.
     var artifact: PublishArtifact? = null
     project.artifacts {
-      artifact = add(FeatureBasePlugin.feature, jarTask)
+      artifact = add(FeatureBasePlugin.feature, jarTask) {
+        this.extension = "jar"
+        this.type = "feature"
+      }
     }
     if(extension.createPublication) {
       // Add artifact as main publication.
@@ -204,9 +207,11 @@ class FeaturePlugin : Plugin<Project> {
         //val component = project.components.getByName("java")
         project.extensions.configure<PublishingExtension> {
           publications.create<MavenPublication>("Feature") {
-            artifact(artifact)
+            artifact(artifact) {
+              this.extension = "jar"
+            }
             pom {
-              packaging = "feature"
+              packaging = "jar"
               withXml {
                 val root = asElement()
                 val doc = root.ownerDocument
