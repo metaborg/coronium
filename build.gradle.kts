@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   // Stick with version 1.3.10 because the kotlin-dsl plugin uses that.
-  kotlin("jvm") version "1.3.10" apply true
+  kotlin("jvm") version "1.3.10"
   `kotlin-dsl`
   `java-gradle-plugin`
   `maven-publish`
