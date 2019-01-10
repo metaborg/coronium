@@ -1,23 +1,20 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  // Stick with version 1.3.10 because the kotlin-dsl plugin uses that.
-  kotlin("jvm") version "1.3.10"
+  id("org.metaborg.gradle.config") version "0.4.1"
+  id("org.metaborg.gitonium") version "0.3.0"
+  kotlin("jvm") version "1.3.11" // Use version 1.3.11 for compatibility with Gradle 5.1.
   `kotlin-dsl`
   `java-gradle-plugin`
   `maven-publish`
-  id("org.metaborg.gitonium") version "0.3.0"
 }
 
-group = "org.metaborg"
-
-repositories {
-  maven(url = "http://home.gohla.nl:8091/artifactory/all/")
-}
+// TODO: configureKotlinGradlePlugin() causes compilation errors in plugin.
+//metaborgConfig {
+//  configureKotlinGradlePlugin()
+//}
 
 dependencies {
-  compile(kotlin("stdlib"))
-
   compile("org.apache.maven.resolver:maven-resolver-api:1.1.1")
   compile("org.apache.maven.resolver:maven-resolver-impl:1.1.1")
   compile("org.apache.maven.resolver:maven-resolver-connector-basic:1.1.1")
@@ -32,10 +29,6 @@ dependencies {
 kotlinDslPluginOptions {
   experimentalWarning.set(false)
 }
-tasks.withType<KotlinCompile>().all {
-  kotlinOptions.jvmTarget = "1.8"
-}
-
 gradlePlugin {
   plugins {
     create("coronium-bundle") {
@@ -60,27 +53,5 @@ gradlePlugin {
 tasks.withType<Test> {
   useJUnitPlatform {
     excludeTags.add("longRunning")
-  }
-}
-
-tasks {
-  register("buildAll") {
-    dependsOn("build")
-  }
-  register("cleanAll") {
-    dependsOn("clean")
-  }
-}
-
-publishing {
-  repositories {
-    maven {
-      name = "Artifactory"
-      url = uri("http://home.gohla.nl:8091/artifactory/all/")
-      credentials {
-        username = project.findProperty("publish.repository.Artifactory.username")?.toString()
-        password = project.findProperty("publish.repository.Artifactory.password")?.toString()
-      }
-    }
   }
 }
