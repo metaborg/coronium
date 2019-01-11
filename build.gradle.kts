@@ -1,18 +1,11 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-  id("org.metaborg.gradle.config") version "0.4.1"
+  id("org.metaborg.gradle.config") version "0.4.3"
   id("org.metaborg.gitonium") version "0.3.0"
   kotlin("jvm") version "1.3.11" // Use version 1.3.11 for compatibility with Gradle 5.1.
   `kotlin-dsl`
   `java-gradle-plugin`
   `maven-publish`
 }
-
-// TODO: configureKotlinGradlePlugin() causes compilation errors in plugin.
-//metaborgConfig {
-//  configureKotlinGradlePlugin()
-//}
 
 dependencies {
   compile("org.apache.maven.resolver:maven-resolver-api:1.1.1")

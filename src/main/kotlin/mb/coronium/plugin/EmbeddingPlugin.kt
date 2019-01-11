@@ -30,6 +30,7 @@ class EmbeddingPlugin : Plugin<Project> {
 
     project.pluginManager.apply(BundleBasePlugin::class)
 
+
     // Make the bundle dependency configurations extend Java's dependency configurations, such that Java dependencies get included as bundle
     // dependencies.
     project.pluginManager.apply(JavaLibraryPlugin::class)
