@@ -7,11 +7,12 @@ import mb.coronium.plugin.internal.*
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.*
-import org.gradle.api.Plugin
-import org.gradle.api.Project
+import org.gradle.api.*
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
@@ -21,6 +22,8 @@ import java.nio.file.Files
 
 @Suppress("unused")
 open class BundleExtension(private val project: Project) {
+  var createPublication: Boolean = false
+
   private val bundleImplementationConfig = project.bundleImplementationConfig
   private val bundleImplementationProvidedConfig = project.bundleImplementationProvidedConfig
 
@@ -108,6 +111,7 @@ class BundlePlugin : Plugin<Project> {
 
   private fun configure(project: Project) {
     val log = GradleLog(project.logger)
+    val extension = project.extensions.getByType<BundleExtension>()
     val bundleApiConfig = project.bundleApiConfig
     val bundleApiProvidedConfig = project.bundleApiProvidedConfig
     val bundleImplementationConfig = project.bundleImplementationConfig
@@ -256,9 +260,21 @@ class BundlePlugin : Plugin<Project> {
         }
       }
     }
-    // Publish the result of the JAR task in the 'bundle' configuration.
+
+    // Add the result of the JAR task as an artifact in the 'bundle' configuration.
     project.artifacts {
       add(bundleConfig.name, jarTask)
+    }
+    if(extension.createPublication) {
+      // Add Java component as main publication.
+      project.pluginManager.withPlugin("maven-publish") {
+        val component = project.components.getByName("java")
+        project.extensions.configure<PublishingExtension> {
+          publications.create<MavenPublication>("Bundle") {
+            from(component)
+          }
+        }
+      }
     }
 
     // Run Eclipse with this plugin and its dependencies.

@@ -3,22 +3,19 @@ package mb.coronium.plugin
 import mb.coronium.mavenize.toEclipse
 import mb.coronium.model.eclipse.Repository
 import mb.coronium.model.maven.MavenVersion
-import mb.coronium.plugin.internal.FeatureBasePlugin
-import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.featureConfig
-import mb.coronium.plugin.internal.mavenizedEclipseInstallation
+import mb.coronium.plugin.internal.*
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.*
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.PublishArtifact
 import org.gradle.api.plugins.BasePlugin
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.bundling.Zip
-import org.gradle.kotlin.dsl.apply
-import org.gradle.kotlin.dsl.create
-import org.gradle.kotlin.dsl.getByType
-import org.gradle.kotlin.dsl.project
+import org.gradle.kotlin.dsl.*
 import java.io.PrintStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -28,12 +25,12 @@ import kotlin.collections.set
 
 @Suppress("unused")
 open class RepositoryExtension(private val project: Project) {
-  private val featureConfig = project.featureConfig
-
-  internal val featureDependencyToCategoryName = mutableMapOf<Dependency, String>()
-
   var repositoryDescriptionFile: String = "category.xml"
   var qualifierReplacement: String = SimpleDateFormat("yyyyMMddHHmm").format(Calendar.getInstance().time)
+  var createPublication: Boolean = true
+
+  private val featureConfig = project.featureConfig
+  internal val featureDependencyToCategoryName = mutableMapOf<Dependency, String>()
 
   fun feature(group: String, name: String, version: String, categoryName: String? = null): Dependency {
     val dependency = project.dependencies.create(group, name, version, FeatureBasePlugin.feature)
@@ -259,8 +256,56 @@ class RepositoryPlugin : Plugin<Project> {
       from(repositoryDir)
     }
     project.tasks.getByName(BasePlugin.ASSEMBLE_TASK_NAME).dependsOn(zipRepositoryTask)
+
+    // Add the result of the ZIP task as an artifact in the 'repository' configuration.
+    var artifact: PublishArtifact? = null
     project.artifacts {
-      add(repositoryConfig.name, zipRepositoryTask)
+      artifact = add(repositoryConfig.name, zipRepositoryTask) {
+        this.extension = "zip"
+        this.type = "repository"
+      }
+    }
+    if(extension.createPublication) {
+      // Add artifact as main publication.
+      project.pluginManager.withPlugin("maven-publish") {
+        project.extensions.configure<PublishingExtension> {
+          publications.create<MavenPublication>("Repository") {
+            artifact(artifact) {
+              this.extension = "zip"
+            }
+            pom {
+              packaging = "zip"
+              withXml {
+                val root = asElement()
+                val doc = root.ownerDocument
+                val dependenciesNode = doc.createElement("dependencies")
+                for(dependency in featureConfig.dependencies) {
+                  val dependencyNode = doc.createElement("dependency")
+
+                  val groupIdNode = doc.createElement("groupId")
+                  groupIdNode.appendChild(doc.createTextNode(dependency.group))
+                  dependencyNode.appendChild(groupIdNode)
+
+                  val artifactIdNode = doc.createElement("artifactId")
+                  artifactIdNode.appendChild(doc.createTextNode(dependency.name))
+                  dependencyNode.appendChild(artifactIdNode)
+
+                  val versionNode = doc.createElement("version")
+                  versionNode.appendChild(doc.createTextNode(dependency.version))
+                  dependencyNode.appendChild(versionNode)
+
+                  val scopeNode = doc.createElement("scope")
+                  scopeNode.appendChild(doc.createTextNode("provided"))
+                  dependencyNode.appendChild(scopeNode)
+
+                  dependenciesNode.appendChild(dependencyNode)
+                }
+                root.appendChild(dependenciesNode)
+              }
+            }
+          }
+        }
+      }
     }
 
     // Run Eclipse with unpacked plugins.

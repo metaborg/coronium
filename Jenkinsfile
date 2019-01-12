@@ -1,10 +1,3 @@
-pipeline {
-  agent any
-  stages {
-    stage('Build') {
-      steps {
-        sh 'gradle build'
-      }
-    }
-  }
-}
+@Library('metaborg.jenkins.pipeline') _
+
+gradlePipeline()

@@ -14,15 +14,18 @@ import mb.coronium.util.toGradleDependency
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.PublishArtifact
 import org.gradle.api.plugins.BasePlugin
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.jvm.tasks.Jar
-import org.gradle.kotlin.dsl.apply
-import org.gradle.kotlin.dsl.create
-import org.gradle.kotlin.dsl.project
+import org.gradle.kotlin.dsl.*
 import java.nio.file.Files
 
 @Suppress("unused")
 open class FeatureExtension(private val project: Project) {
+  var createPublication: Boolean = false
+
   private val bundleConfig = project.bundleConfig
 
   fun bundle(group: String, name: String, version: String): Dependency {
@@ -50,6 +53,7 @@ class FeaturePlugin : Plugin<Project> {
 
   private fun configure(project: Project) {
     val log = GradleLog(project.logger)
+    val extension = project.extensions.getByType<FeatureExtension>()
     val bundleConfig = project.bundleConfig
 
     project.pluginManager.apply(BasePlugin::class)
@@ -81,7 +85,7 @@ class FeaturePlugin : Plugin<Project> {
         builder.version = project.eclipseVersion
       }
       // Add dependencies from Gradle project.
-      for(dependency in bundleConfig.allDependencies) {
+      for(dependency in bundleConfig.dependencies) {
         if(dependency.version == null) {
           error("Cannot convert dependency $dependency to a feature dependency, as it it has no version")
         }
@@ -101,7 +105,7 @@ class FeaturePlugin : Plugin<Project> {
         project.version = feature.version.toMaven()
       }
       // Add dependencies to bundle configuration when it is empty. Not using default dependencies due to https://github.com/gradle/gradle/issues/7943.
-      if(bundleConfig.allDependencies.isEmpty()) {
+      if(bundleConfig.dependencies.isEmpty()) {
         for(featureDependency in feature.dependencies) {
           val coords = converter.convert(featureDependency.coordinates)
           val isMavenizedBundle = mavenized.isMavenizedBundle(coords.groupId, coords.id)
@@ -187,9 +191,58 @@ class FeaturePlugin : Plugin<Project> {
       from(targetDir)
     }
     project.tasks.getByName(BasePlugin.ASSEMBLE_TASK_NAME).dependsOn(jarTask)
-    // Publish the result of the JAR task in the 'feature' configuration.
+
+
+    // Add the result of the JAR task as an artifact in the 'feature' configuration.
+    var artifact: PublishArtifact? = null
     project.artifacts {
-      add(FeatureBasePlugin.feature, jarTask)
+      artifact = add(FeatureBasePlugin.feature, jarTask) {
+        this.extension = "jar"
+        this.type = "feature"
+      }
+    }
+    if(extension.createPublication) {
+      // Add artifact as main publication.
+      project.pluginManager.withPlugin("maven-publish") {
+        //val component = project.components.getByName("java")
+        project.extensions.configure<PublishingExtension> {
+          publications.create<MavenPublication>("Feature") {
+            artifact(artifact) {
+              this.extension = "jar"
+            }
+            pom {
+              packaging = "jar"
+              withXml {
+                val root = asElement()
+                val doc = root.ownerDocument
+                val dependenciesNode = doc.createElement("dependencies")
+                for(dependency in bundleConfig.dependencies) {
+                  val dependencyNode = doc.createElement("dependency")
+
+                  val groupIdNode = doc.createElement("groupId")
+                  groupIdNode.appendChild(doc.createTextNode(dependency.group))
+                  dependencyNode.appendChild(groupIdNode)
+
+                  val artifactIdNode = doc.createElement("artifactId")
+                  artifactIdNode.appendChild(doc.createTextNode(dependency.name))
+                  dependencyNode.appendChild(artifactIdNode)
+
+                  val versionNode = doc.createElement("version")
+                  versionNode.appendChild(doc.createTextNode(dependency.version))
+                  dependencyNode.appendChild(versionNode)
+
+                  val scopeNode = doc.createElement("scope")
+                  scopeNode.appendChild(doc.createTextNode("provided"))
+                  dependencyNode.appendChild(scopeNode)
+
+                  dependenciesNode.appendChild(dependencyNode)
+                }
+                root.appendChild(dependenciesNode)
+              }
+            }
+          }
+        }
+      }
     }
 
     // Run Eclipse with direct dependencies.
