@@ -1,7 +1,7 @@
 package mb.coronium.plugin
 
 import mb.coronium.mavenize.toEclipse
-import mb.coronium.model.eclipse.Repository
+import mb.coronium.model.eclipse.*
 import mb.coronium.model.maven.MavenVersion
 import mb.coronium.plugin.internal.*
 import mb.coronium.task.EclipseRun
@@ -16,9 +16,7 @@ import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.*
-import java.io.PrintStream
 import java.nio.file.Files
-import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.set
@@ -161,10 +159,28 @@ class RepositoryPlugin : Plugin<Project> {
               val fileName = featureJarFile.fileName
               val unpackTempDir = tempDir.createTempDir(fileName.toString())
               unpack(featureJarFile, unpackTempDir, log)
-              val featureFile = unpackTempDir.resolve("feature.xml")
-              if(Files.isRegularFile(featureFile)) {
-                // TODO: this could have false positives, do a model 2 model transformation instead?
-                featureFile.replaceInFile("qualifier", concreteQualifier)
+              val featureXmlFile = unpackTempDir.resolve("feature.xml")
+              if(Files.isRegularFile(featureXmlFile)) {
+                val builder = Feature.Builder()
+                builder.readFromFeatureXml(featureXmlFile, log)
+                // Replace qualifier in version.
+                builder.version = builder.version?.mapQualifier {
+                  it?.replace("qualifier", concreteQualifier)
+                }
+                // Replace qualifier in dependencies.
+                builder.dependencies = builder.dependencies.map { dep ->
+                  dep.mapVersion { version ->
+                    version.mapQualifier {
+                      it?.replace("qualifier", concreteQualifier)
+                    }
+                  }
+                }.toMutableList()
+                // Write back feature XML.
+                val feature = builder.build()
+                Files.newOutputStream(featureXmlFile).buffered().use { outputStream ->
+                  feature.writeToFeatureXml(outputStream)
+                  outputStream.flush()
+                }
               } else {
                 log.warning("Unable to replace qualifiers in versions for $fileName, as it has no feature.xml file")
               }
@@ -179,8 +195,34 @@ class RepositoryPlugin : Plugin<Project> {
               unpack(pluginJarFile, unpackTempDir, log)
               val manifestFile = unpackTempDir.resolve("META-INF/MANIFEST.MF")
               if(Files.isRegularFile(manifestFile)) {
-                // TODO: this could have false positives, do a model 2 model transformation instead?
-                manifestFile.replaceInFile("qualifier", concreteQualifier)
+                val manifest = readManifestFromFile(manifestFile)
+                val builder = Bundle.Builder()
+                builder.readFromManifestAttributes(manifest.mainAttributes, log)
+                // Replace qualifier in version.
+                builder.coordinates.version = builder.coordinates.version?.mapQualifier {
+                  it?.replace("qualifier", concreteQualifier)
+                }
+                // Replace qualifier in dependencies.
+                builder.requiredBundles = builder.requiredBundles.map { dep ->
+                  dep.mapVersion { version ->
+                    when(version) {
+                      is BundleVersion -> version.mapQualifier { it?.replace("qualifier", concreteQualifier) }
+                      is BundleVersionRange -> version.mapQualifiers { it?.replace("qualifier", concreteQualifier) }
+                      null -> null
+                    }
+                  }
+                }.toMutableList()
+                // Write back to manifest attributes.
+                val bundle = builder.build()
+                val attributesMap = bundle.writeToManifestAttributes()
+                for((name, value) in attributesMap) {
+                  manifest.mainAttributes.putValue(name, value)
+                }
+                // Write manifest back to file.
+                Files.newOutputStream(manifestFile).buffered().use { outputStream ->
+                  manifest.write(outputStream)
+                  outputStream.flush()
+                }
               } else {
                 log.warning("Unable to replace qualifiers in versions for $fileName, as it has no META-INF/MANIFEST.MF file")
               }
@@ -323,17 +365,5 @@ class RepositoryPlugin : Plugin<Project> {
     project.tasks.create<EclipseRun>("run") {
       configure(prepareEclipseRunConfigurationTask, mavenized, project.mavenizeExtension())
     }
-  }
-}
-
-private fun Path.replaceInFile(pattern: String, replacement: String) {
-  // TODO: more efficient way to replace strings in a file?
-  val text = String(Files.readAllBytes(this)).replace(pattern, replacement)
-  Files.newOutputStream(this).buffered().use { outputStream ->
-    PrintStream(outputStream).use {
-      it.print(text)
-      it.flush()
-    }
-    outputStream.flush()
   }
 }

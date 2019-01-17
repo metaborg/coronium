@@ -88,7 +88,7 @@ data class Bundle(
   class Builder {
     val coordinates: BundleCoordinates.Builder = BundleCoordinates.Builder()
     var manifestVersion: String? = null
-    val requiredBundles: MutableCollection<BundleDependency> = mutableListOf()
+    var requiredBundles: MutableCollection<BundleDependency> = mutableListOf()
     var fragmentHost: BundleDependency? = null
     var sourceBundleFor: BundleDependency? = null
 
@@ -272,6 +272,9 @@ data class BundleDependency(
       return element.trim()
     }
   }
+
+  fun mapVersion(func: (BundleVersionOrRange?) -> BundleVersionOrRange?) =
+    BundleDependency(name, func(version), resolution, visibility, isSourceBundleDependency)
 
   override fun toString(): String {
     val parameters = mutableListOf<String>()
