@@ -25,7 +25,9 @@ data class BundleVersion(
     fun zero() = BundleVersion(0, null, null, null)
   }
 
-  fun withoutQualifier() = BundleVersion(major, minor, micro, null)
+  fun mapQualifier(func: (String?) -> String?) = BundleVersion(major, minor, micro, func(qualifier))
+
+  fun withoutQualifier() = mapQualifier { null }
 
   override fun toString() = "$major" +
     (if(minor != null) ".$minor" else "") +
@@ -54,6 +56,9 @@ data class BundleVersionRange(
       return BundleVersionRange(minChr == "[", minVer, maxVer, maxChr == "]")
     }
   }
+
+  fun mapQualifiers(func: (String?) -> String?) =
+    BundleVersionRange(minInclusive, minVersion.mapQualifier(func), maxVersion.mapQualifier(func), maxInclusive)
 
   fun withoutQualifiers() =
     BundleVersionRange(minInclusive, minVersion.withoutQualifier(), maxVersion.withoutQualifier(), maxInclusive)

@@ -19,13 +19,15 @@ data class Feature(
     val unpack: Boolean
   ) {
     data class Coordinates(val id: String, val version: BundleVersion)
+
+    fun mapVersion(func: (BundleVersion) -> BundleVersion) = Dependency(Coordinates(coordinates.id, func(coordinates.version)), unpack)
   }
 
   class Builder {
     var id: String? = null
     var version: BundleVersion? = null
     var label: String? = null
-    val dependencies: MutableCollection<Dependency> = mutableListOf()
+    var dependencies: MutableCollection<Dependency> = mutableListOf()
 
     fun readFromFeatureXml(file: Path, log: Log) {
       val doc = Files.newInputStream(file).buffered().use { inputStream ->
