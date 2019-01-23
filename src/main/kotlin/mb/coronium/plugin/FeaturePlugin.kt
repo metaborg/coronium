@@ -152,7 +152,7 @@ class FeaturePlugin : Plugin<Project> {
     val targetFeaturesDir = targetDir.resolve("features")
     val featureJarTask = project.tasks.create<Jar>("featureJar") {
       dependsOn(featureXmlTask)
-      destinationDir = targetFeaturesDir
+      destinationDirectory.set(targetFeaturesDir)
       if(!properties.binaryIncludes.isEmpty()) {
         from(project.projectDir) {
           for(resource in properties.binaryIncludes) {
