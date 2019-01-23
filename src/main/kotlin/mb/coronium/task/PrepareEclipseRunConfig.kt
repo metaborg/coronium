@@ -4,10 +4,7 @@ import mb.coronium.mavenize.MavenizedEclipseInstallation
 import mb.coronium.util.toPortableString
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileCollection
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.*
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import java.io.File
 import java.io.PrintWriter
@@ -48,7 +45,7 @@ open class PrepareEclipseRunConfig : DefaultTask() {
   }
 
   fun addBundle(archiveTask: AbstractArchiveTask) {
-    bundles.add(archiveTask.archivePath.toPath())
+    bundles.add(archiveTask.archiveFile.get().asFile.toPath())
   }
 
   fun addBundles(fileCollection: FileCollection) {
