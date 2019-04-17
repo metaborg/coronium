@@ -204,7 +204,6 @@ class FeaturePlugin : Plugin<Project> {
     if(extension.createPublication) {
       // Add artifact as main publication.
       project.pluginManager.withPlugin("maven-publish") {
-        //val component = project.components.getByName("java")
         project.extensions.configure<PublishingExtension> {
           publications.create<MavenPublication>("Feature") {
             artifact(artifact) {
