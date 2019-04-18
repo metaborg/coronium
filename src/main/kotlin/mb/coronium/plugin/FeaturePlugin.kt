@@ -61,6 +61,9 @@ class FeaturePlugin : Plugin<Project> {
     project.pluginManager.apply(MavenizePlugin::class)
     val mavenized = project.mavenizedEclipseInstallation()
 
+    // Make sure the configuration is resolved
+    bundleConfig.resolvedConfiguration
+
     // Build feature model from feature.xml and Gradle project.
     val feature = run {
       val builder = Feature.Builder()
@@ -86,11 +89,12 @@ class FeaturePlugin : Plugin<Project> {
       }
       // Add dependencies from Gradle project.
       for(dependency in bundleConfig.dependencies) {
+        log.info("Dependency = $dependency with version = ${dependency.version}")
         if(dependency.version == null) {
           error("Cannot convert dependency $dependency to a feature dependency, as it it has no version")
         }
         val version = MavenVersion.parse(dependency.version!!).toEclipse()
-        builder.dependencies.add(Feature.Dependency(Feature.Dependency.Coordinates(dependency.name, version), false))
+        builder.dependencies.add(Feature.Dependency(Feature.Dependency.Coordinates(dependency.name, version), true))
       }
       builder.build()
     }
