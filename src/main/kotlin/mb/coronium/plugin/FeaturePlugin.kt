@@ -94,7 +94,7 @@ class FeaturePlugin : Plugin<Project> {
           error("Cannot convert dependency $dependency to a feature dependency, as it it has no version")
         }
         val version = MavenVersion.parse(dependency.version!!).toEclipse()
-        builder.dependencies.add(Feature.Dependency(Feature.Dependency.Coordinates(dependency.name, version), true))
+        builder.addOrMerge(dependency.name, version)
       }
       builder.build()
     }

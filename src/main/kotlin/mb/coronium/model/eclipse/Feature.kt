@@ -18,9 +18,10 @@ data class Feature(
     val coordinates: Coordinates,
     val unpack: Boolean
   ) {
-    data class Coordinates(val id: String, val version: BundleVersion)
+    data class Coordinates(val id: String, val version: BundleVersion?)
 
-    fun mapVersion(func: (BundleVersion) -> BundleVersion) = Dependency(Coordinates(coordinates.id, func(coordinates.version)), unpack)
+    fun mapVersion(func: (BundleVersion) -> BundleVersion) =
+      Dependency(Coordinates(coordinates.id, if (coordinates.version == null) coordinates.version else func(coordinates.version)), unpack)
   }
 
   class Builder {
@@ -62,18 +63,15 @@ data class Feature(
         when(subNode.nodeName) {
           "plugin" -> {
             val depId = subNode.attributes.getNamedItem("id")?.nodeValue
-            val depVersionStr = subNode.attributes.getNamedItem("version")?.nodeValue
-            if(depId == null || depVersionStr == null) {
-              log.warning("Plugin dependency of $file has no id or version; skipping dependency")
+
+            if (depId == null) {
+              log.warning("Skipping plugin without id in feature.xml")
             } else {
-              val depVersion = BundleVersion.parse(depVersionStr)
-              if(depVersion == null) {
-                log.warning("Could not parse dependency version '$depVersionStr' of $file; skipping dependency")
-              } else {
-                val coordinates = Dependency.Coordinates(depId, depVersion)
-                val unpack = subNode.attributes.getNamedItem("unpack")?.nodeValue?.toBoolean() ?: false
-                dependencies.add(Dependency(coordinates, unpack))
-              }
+              val depVersionStr = subNode.attributes.getNamedItem("version")?.nodeValue
+              val unpack = subNode.attributes.getNamedItem("unpack")?.nodeValue?.toBoolean() ?: false
+              val depVersion = parseVersionStr(depVersionStr, log)
+              val coordinates = Dependency.Coordinates(depId, depVersion)
+              dependencies.add(Dependency(coordinates, unpack))
             }
           }
           else -> {
@@ -84,12 +82,38 @@ data class Feature(
       }
     }
 
+    private fun parseVersionStr(depVersionStr: String?, log: Log): BundleVersion? {
+      if (depVersionStr == null) {
+        return null
+      }
+
+      val parseVersionStr = BundleVersion.parse(depVersionStr)
+      if (parseVersionStr == null) {
+        log.warning("Could not parse dependency version '$depVersionStr'; skipping dependency")
+        return null
+      }
+
+      return parseVersionStr
+    }
+
     fun build() = Feature(
       id ?: error("Cannot create feature, id was not set"),
       version ?: error("Cannot create feature, version was not set"),
       label,
       dependencies
     )
+
+    fun addOrMerge(id: String, version: BundleVersion) {
+      val dependency = dependencies.find { it.coordinates.id == id }
+      val coordinates = Feature.Dependency.Coordinates(id, version)
+
+      if (dependency == null) {
+        dependencies.add(Feature.Dependency(coordinates, false))
+      } else {
+        dependencies.remove(dependency)
+        dependencies.add(Feature.Dependency(coordinates, dependency.unpack))
+      }
+    }
   }
 
   fun writeToFeatureXml(outputStream: OutputStream) {
