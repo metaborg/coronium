@@ -1,6 +1,9 @@
 package mb.coronium.model.eclipse
 
+import mb.coronium.mavenize.toEclipse
+import mb.coronium.model.maven.MavenVersion
 import mb.coronium.util.Log
+import org.gradle.api.artifacts.Configuration
 import org.w3c.dom.Node
 import java.io.OutputStream
 import java.io.PrintWriter
@@ -102,18 +105,43 @@ data class Feature(
       label,
       dependencies
     )
+  }
 
-    fun addOrMerge(id: String, version: BundleVersion) {
-      val dependency = dependencies.find { it.coordinates.id == id }
-      val coordinates = Feature.Dependency.Coordinates(id, version)
+  fun mergeWith(gradleDependencies: Configuration): Feature {
+    val mergedDependencies: MutableCollection<Dependency> = mutableListOf()
+    val featureDependencies = dependencies
 
-      if (dependency == null) {
-        dependencies.add(Feature.Dependency(coordinates, false))
+    // Add all Gradle dependencies or merge its version with an existing feature dependency
+    gradleDependencies.dependencies.forEach { dependency ->
+      val existingDependency = featureDependencies.find { it.coordinates.id == dependency.name }
+      val dependencyVersion = MavenVersion.parse(dependency.version!!).toEclipse()
+
+      if (existingDependency == null) {
+        val coordinates = Dependency.Coordinates(dependency.name, dependencyVersion)
+        val mergedDependency = Dependency(coordinates, false)
+        mergedDependencies.add(mergedDependency)
       } else {
-        dependencies.remove(dependency)
-        dependencies.add(Feature.Dependency(coordinates, dependency.unpack))
+        if (existingDependency.coordinates.version != null) {
+          if (existingDependency.coordinates.version != dependencyVersion) {
+            error("The version of the pluginBundle in Gradle and the version of the plugin in feature.xml are unequal.")
+          }
+        }
+        val coordinates = Dependency.Coordinates(existingDependency.coordinates.id, dependencyVersion)
+        val mergedDependency = Dependency(coordinates, existingDependency.unpack)
+        mergedDependencies.add(mergedDependency)
       }
     }
+
+    // Add all feature dependencies that are not also Gradle dependencies
+    featureDependencies.forEach { featureDependency ->
+      val existingDependency = gradleDependencies.dependencies.find { it.name == featureDependency.coordinates.id }
+
+      if (existingDependency == null) {
+        mergedDependencies.add(featureDependency)
+      }
+    }
+
+    return Feature(id, version, label, mergedDependencies)
   }
 
   fun writeToFeatureXml(outputStream: OutputStream) {

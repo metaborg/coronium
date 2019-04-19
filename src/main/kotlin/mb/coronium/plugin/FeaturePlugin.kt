@@ -1,10 +1,8 @@
 package mb.coronium.plugin
 
-import mb.coronium.mavenize.toEclipse
 import mb.coronium.mavenize.toMaven
 import mb.coronium.model.eclipse.BuildProperties
 import mb.coronium.model.eclipse.Feature
-import mb.coronium.model.maven.MavenVersion
 import mb.coronium.plugin.internal.*
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
@@ -61,9 +59,6 @@ class FeaturePlugin : Plugin<Project> {
     project.pluginManager.apply(MavenizePlugin::class)
     val mavenized = project.mavenizedEclipseInstallation()
 
-    // Make sure the configuration is resolved
-    bundleConfig.resolvedConfiguration
-
     // Build feature model from feature.xml and Gradle project.
     val feature = run {
       val builder = Feature.Builder()
@@ -86,15 +81,6 @@ class FeaturePlugin : Plugin<Project> {
           error("Cannot configure Eclipse feature project; no project version was set, nor has a version been set in $featureXmlFile")
         }
         builder.version = project.eclipseVersion
-      }
-      // Add dependencies from Gradle project.
-      for(dependency in bundleConfig.dependencies) {
-        log.info("Dependency = $dependency with version = ${dependency.version}")
-        if(dependency.version == null) {
-          error("Cannot convert dependency $dependency to a feature dependency, as it it has no version")
-        }
-        val version = MavenVersion.parse(dependency.version!!).toEclipse()
-        builder.addOrMerge(dependency.name, version)
       }
       builder.build()
     }
@@ -140,13 +126,13 @@ class FeaturePlugin : Plugin<Project> {
     val featureXmlDir = project.buildDir.resolve("featureXml")
     val featureXmlTask = project.tasks.create("featureXmlTask") {
       // Depend on (files from) bundle configuration because dependencies in this configuration affect the feature model.
-      dependsOn(bundleConfig)
       inputs.files(bundleConfig)
       val featureXmlFile = featureXmlDir.resolve("feature.xml").toPath()
       outputs.file(featureXmlFile)
       doLast {
+        val mergedFeature = feature.mergeWith(bundleConfig)
         Files.newOutputStream(featureXmlFile).buffered().use { outputStream ->
-          feature.writeToFeatureXml(outputStream)
+          mergedFeature.writeToFeatureXml(outputStream)
           outputStream.flush()
         }
       }
