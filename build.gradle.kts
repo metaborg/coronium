@@ -22,6 +22,7 @@ dependencies {
 kotlinDslPluginOptions {
   experimentalWarning.set(false)
 }
+
 gradlePlugin {
   plugins {
     create("coronium-bundle") {
@@ -41,6 +42,14 @@ gradlePlugin {
       implementationClass = "mb.coronium.plugin.EmbeddingPlugin"
     }
   }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+        }
+    }
 }
 
 tasks.withType<Test> {

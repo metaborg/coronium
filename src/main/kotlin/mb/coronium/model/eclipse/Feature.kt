@@ -1,6 +1,9 @@
 package mb.coronium.model.eclipse
 
+import mb.coronium.mavenize.toEclipse
+import mb.coronium.model.maven.MavenVersion
 import mb.coronium.util.Log
+import org.gradle.api.artifacts.Configuration
 import org.w3c.dom.Node
 import java.io.OutputStream
 import java.io.PrintWriter
@@ -18,9 +21,10 @@ data class Feature(
     val coordinates: Coordinates,
     val unpack: Boolean
   ) {
-    data class Coordinates(val id: String, val version: BundleVersion)
+    data class Coordinates(val id: String, val version: BundleVersion?)
 
-    fun mapVersion(func: (BundleVersion) -> BundleVersion) = Dependency(Coordinates(coordinates.id, func(coordinates.version)), unpack)
+    fun mapVersion(func: (BundleVersion) -> BundleVersion) =
+      Dependency(Coordinates(coordinates.id, if (coordinates.version == null) coordinates.version else func(coordinates.version)), unpack)
   }
 
   class Builder {
@@ -62,18 +66,15 @@ data class Feature(
         when(subNode.nodeName) {
           "plugin" -> {
             val depId = subNode.attributes.getNamedItem("id")?.nodeValue
-            val depVersionStr = subNode.attributes.getNamedItem("version")?.nodeValue
-            if(depId == null || depVersionStr == null) {
-              log.warning("Plugin dependency of $file has no id or version; skipping dependency")
+
+            if (depId == null) {
+              log.warning("Skipping plugin without id in feature.xml")
             } else {
-              val depVersion = BundleVersion.parse(depVersionStr)
-              if(depVersion == null) {
-                log.warning("Could not parse dependency version '$depVersionStr' of $file; skipping dependency")
-              } else {
-                val coordinates = Dependency.Coordinates(depId, depVersion)
-                val unpack = subNode.attributes.getNamedItem("unpack")?.nodeValue?.toBoolean() ?: false
-                dependencies.add(Dependency(coordinates, unpack))
-              }
+              val depVersionStr = subNode.attributes.getNamedItem("version")?.nodeValue
+              val unpack = subNode.attributes.getNamedItem("unpack")?.nodeValue?.toBoolean() ?: false
+              val depVersion = parseVersionStr(depVersionStr, log)
+              val coordinates = Dependency.Coordinates(depId, depVersion)
+              dependencies.add(Dependency(coordinates, unpack))
             }
           }
           else -> {
@@ -84,12 +85,63 @@ data class Feature(
       }
     }
 
+    private fun parseVersionStr(depVersionStr: String?, log: Log): BundleVersion? {
+      if (depVersionStr == null) {
+        return null
+      }
+
+      val parseVersionStr = BundleVersion.parse(depVersionStr)
+      if (parseVersionStr == null) {
+        log.warning("Could not parse dependency version '$depVersionStr'; skipping dependency")
+        return null
+      }
+
+      return parseVersionStr
+    }
+
     fun build() = Feature(
       id ?: error("Cannot create feature, id was not set"),
       version ?: error("Cannot create feature, version was not set"),
       label,
       dependencies
     )
+  }
+
+  fun mergeWith(gradleDependencies: Configuration): Feature {
+    val mergedDependencies: MutableCollection<Dependency> = mutableListOf()
+    val featureDependencies = dependencies
+
+    // Add all Gradle dependencies or merge its version with an existing feature dependency
+    gradleDependencies.dependencies.forEach { dependency ->
+      val existingDependency = featureDependencies.find { it.coordinates.id == dependency.name }
+      val dependencyVersion = MavenVersion.parse(dependency.version!!).toEclipse()
+
+      if (existingDependency == null) {
+        val coordinates = Dependency.Coordinates(dependency.name, dependencyVersion)
+        val mergedDependency = Dependency(coordinates, false)
+        mergedDependencies.add(mergedDependency)
+      } else {
+        if (existingDependency.coordinates.version != null) {
+          if (existingDependency.coordinates.version != dependencyVersion) {
+            error("The version of the pluginBundle in Gradle and the version of the plugin in feature.xml are unequal.")
+          }
+        }
+        val coordinates = Dependency.Coordinates(existingDependency.coordinates.id, dependencyVersion)
+        val mergedDependency = Dependency(coordinates, existingDependency.unpack)
+        mergedDependencies.add(mergedDependency)
+      }
+    }
+
+    // Add all feature dependencies that are not also Gradle dependencies
+    featureDependencies.forEach { featureDependency ->
+      val existingDependency = gradleDependencies.dependencies.find { it.name == featureDependency.coordinates.id }
+
+      if (existingDependency == null) {
+        mergedDependencies.add(featureDependency)
+      }
+    }
+
+    return Feature(id, version, label, mergedDependencies)
   }
 
   fun writeToFeatureXml(outputStream: OutputStream) {
