@@ -91,6 +91,9 @@ fun Feature.Dependency.Coordinates.toMaven(
   classifier: String? = null,
   extension: String? = null
 ): DependencyCoordinates {
+  if (version == null) {
+    throw IllegalStateException("Cannot convert coordinates without version to Maven")
+  }
   val version = this.version.toMaven()
   return DependencyCoordinates(groupId, id, version, classifier, extension)
 }
