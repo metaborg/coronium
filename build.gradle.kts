@@ -44,14 +44,6 @@ gradlePlugin {
   }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
-        }
-    }
-}
-
 tasks.withType<Test> {
   useJUnitPlatform {
     excludeTags.add("longRunning")
