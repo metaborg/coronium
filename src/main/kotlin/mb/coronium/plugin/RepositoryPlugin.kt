@@ -9,8 +9,7 @@ import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.*
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.PublishArtifact
+import org.gradle.api.artifacts.*
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -19,7 +18,6 @@ import org.gradle.kotlin.dsl.*
 import java.nio.file.Files
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.set
 
 @Suppress("unused")
 open class RepositoryExtension(private val project: Project) {
@@ -27,32 +25,71 @@ open class RepositoryExtension(private val project: Project) {
   var qualifierReplacement: String = SimpleDateFormat("yyyyMMddHHmm").format(Calendar.getInstance().time)
   var createPublication: Boolean = true
 
-  private val featureConfig = project.featureConfig
-  internal val featureDependencyToCategoryName = mutableMapOf<Dependency, String>()
 
-  fun feature(group: String, name: String, version: String, categoryName: String? = null): Dependency {
-    val dependency = project.dependencies.create(group, name, version, FeatureBasePlugin.feature)
-    featureConfig.dependencies.add(dependency)
-    if(categoryName != null) {
-      featureDependencyToCategoryName[dependency] = categoryName
+  private fun ModuleDependency.configureArtifact() {
+    this.artifact {
+      this.name = this.name
+      this.type = "feature"
+      this.extension = "jar"
     }
+  }
+
+  private fun createDependency(group: String, name: String, version: String): Dependency {
+    val dependency = project.dependencies.create(group, name, version, Dependency.DEFAULT_CONFIGURATION)
+    dependency.configureArtifact()
     return dependency
   }
 
-  fun featureProject(path: String, categoryName: String? = null): Dependency {
-    val dependency = project.dependencies.project(path, FeatureBasePlugin.feature)
-    featureConfig.dependencies.add(dependency)
-    if(categoryName != null) {
-      featureDependencyToCategoryName[dependency] = categoryName
-    }
+  private fun createDependency(projectPath: String): Dependency {
+    val dependency = project.dependencies.project(projectPath, Dependency.DEFAULT_CONFIGURATION)
+    dependency.configureArtifact()
     return dependency
   }
+
+
+  fun requireFeature(group: String, name: String, version: String): Dependency {
+    val dependency = createDependency(group, name, version)
+    requireFeature(dependency)
+    return dependency
+  }
+
+  fun requireFeature(projectPath: String): Dependency {
+    val dependency = createDependency(projectPath)
+    requireFeature(dependency)
+    return dependency
+  }
+
+  private fun requireFeature(dependency: Dependency) {
+    project.bundleRuntimeConfig().dependencies.add(dependency)
+  }
+
+
+//  private val featureConfig = project.featureConfig
+//  internal val featureDependencyToCategoryName = mutableMapOf<Dependency, String>()
+//
+//  fun feature(group: String, name: String, version: String, categoryName: String? = null): Dependency {
+//    val dependency = project.dependencies.create(group, name, version, FeatureBasePlugin.feature)
+//    featureConfig.dependencies.add(dependency)
+//    if(categoryName != null) {
+//      featureDependencyToCategoryName[dependency] = categoryName
+//    }
+//    return dependency
+//  }
+//
+//  fun featureProject(path: String, categoryName: String? = null): Dependency {
+//    val dependency = project.dependencies.project(path, FeatureBasePlugin.feature)
+//    featureConfig.dependencies.add(dependency)
+//    if(categoryName != null) {
+//      featureDependencyToCategoryName[dependency] = categoryName
+//    }
+//    return dependency
+//  }
 }
 
 @Suppress("unused")
 class RepositoryPlugin : Plugin<Project> {
   override fun apply(project: Project) {
-    project.pluginManager.apply(FeatureBasePlugin::class)
+    project.pluginManager.apply(CoroniumBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
     project.extensions.add("repository", RepositoryExtension(project))
     project.afterEvaluate { configure(this) }
@@ -60,19 +97,14 @@ class RepositoryPlugin : Plugin<Project> {
 
   private fun configure(project: Project) {
     val log = GradleLog(project.logger)
-    val repositoryConfig = project.configurations.create("repository") {
-      isVisible = true
-      isTransitive = false
-      isCanBeConsumed = true
-      isCanBeResolved = true
-    }
-    val featureConfig = project.featureConfig
     val extension = project.extensions.getByType<RepositoryExtension>()
 
     project.pluginManager.apply(BasePlugin::class)
 
     project.pluginManager.apply(MavenizePlugin::class)
     val mavenized = project.mavenizedEclipseInstallation()
+
+    val bundleRuntimeConfig = project.bundleRuntimeConfig()
 
     // Build repository model from repository description file (category.xml or site.xml) and Gradle project.
     val repository = run {
@@ -82,12 +114,13 @@ class RepositoryPlugin : Plugin<Project> {
         builder.readFromRepositoryXml(repositoryDescriptionFile, log)
       }
       // Add dependencies from Gradle project.
-      for(dependency in featureConfig.allDependencies) {
+      for(dependency in bundleRuntimeConfig.allDependencies) {
         if(dependency.version == null) {
           error("Cannot convert dependency $dependency to a feature dependency, as it it has no version")
         }
         val version = MavenVersion.parse(dependency.version!!).toEclipse()
-        val categoryName = extension.featureDependencyToCategoryName[dependency]
+        //val categoryName = extension.featureDependencyToCategoryName[dependency]
+        val categoryName = null // TODO: restore category
         builder.dependencies.add(Repository.Dependency(Repository.Dependency.Coordinates(dependency.name, version), categoryName))
       }
       builder.build()
@@ -99,14 +132,14 @@ class RepositoryPlugin : Plugin<Project> {
       val groupId = project.group.toString()
       val converter = mavenized.createConverter(groupId)
       // Add dependencies to bundle configuration when it is empty. Not using default dependencies due to https://github.com/gradle/gradle/issues/7943.
-      if(featureConfig.allDependencies.isEmpty()) {
+      if(bundleRuntimeConfig.allDependencies.isEmpty()) {
         for(featureDependency in repository.dependencies) {
           val coords = converter.convert(featureDependency.coordinates)
           val isMavenizedBundle = mavenized.isMavenizedBundle(coords.groupId, coords.id)
           // Skip dependencies to mavenized bundles, as they are provided and should not be included in features.
           if(!isMavenizedBundle) {
-            val gradleDependency = coords.toGradleDependency(project, featureConfig.name)
-            featureConfig.dependencies.add(gradleDependency)
+            val gradleDependency = coords.toGradleDependency(project, bundleRuntimeConfig.name)
+            bundleRuntimeConfig.dependencies.add(gradleDependency)
           }
         }
       }
@@ -116,8 +149,8 @@ class RepositoryPlugin : Plugin<Project> {
     val unpackFeaturesDir = project.buildDir.resolve("unpackFeatures")
     unpackFeaturesDir.mkdirs()
     val unpackFeaturesTask = project.tasks.create("unpackFeatures") {
-      dependsOn(featureConfig)
-      inputs.files(featureConfig)
+      dependsOn(bundleRuntimeConfig)
+      inputs.files(bundleRuntimeConfig)
       outputs.dir(unpackFeaturesDir)
       doFirst {
         unpackFeaturesDir.deleteRecursively()
@@ -125,7 +158,7 @@ class RepositoryPlugin : Plugin<Project> {
       }
       doLast {
         project.copy {
-          featureConfig.forEach {
+          bundleRuntimeConfig.forEach {
             from(project.zipTree(it))
           }
           into(unpackFeaturesDir)
@@ -238,8 +271,8 @@ class RepositoryPlugin : Plugin<Project> {
     val repositoryXmlFile = project.buildDir.resolve("repositoryXml/repository.xml").toPath()
     val createRepositoryXmlTask = project.tasks.create("createRepositoryXml") {
       // Depend on (files from) feature configuration because dependencies in this configuration affect the repository model.
-      dependsOn(featureConfig)
-      inputs.files(featureConfig)
+      dependsOn(bundleRuntimeConfig)
+      inputs.files(bundleRuntimeConfig)
       outputs.file(repositoryXmlFile)
       doLast {
         Files.createDirectories(repositoryXmlFile.parent)
@@ -299,14 +332,14 @@ class RepositoryPlugin : Plugin<Project> {
     }
     project.tasks.getByName(BasePlugin.ASSEMBLE_TASK_NAME).dependsOn(zipRepositoryTask)
 
-    // Add the result of the ZIP task as an artifact in the 'repository' configuration.
-    var artifact: PublishArtifact? = null
-    project.artifacts {
-      artifact = add(repositoryConfig.name, zipRepositoryTask) {
-        this.extension = "zip"
-        this.type = "repository"
-      }
+    // Add the result of the ZIP task as an artifact.
+    val artifact: PublishArtifact = project.artifacts.add(Dependency.DEFAULT_CONFIGURATION, zipRepositoryTask) {
+      this.name = project.name
+      this.extension = "zip"
+      this.type = "repository"
+      this.builtBy(zipRepositoryTask)
     }
+
     if(extension.createPublication) {
       // Add artifact as main publication.
       project.pluginManager.withPlugin("maven-publish") {
@@ -321,7 +354,7 @@ class RepositoryPlugin : Plugin<Project> {
                 val root = asElement()
                 val doc = root.ownerDocument
                 val dependenciesNode = doc.createElement("dependencies")
-                for(dependency in featureConfig.dependencies) {
+                for(dependency in bundleRuntimeConfig.dependencies) {
                   val dependencyNode = doc.createElement("dependency")
 
                   val groupIdNode = doc.createElement("groupId")
