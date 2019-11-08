@@ -20,16 +20,19 @@ fun mavenizeEclipseInstallation(
   forceInstall: Boolean = false
 ): MavenizedEclipseInstallation {
   // Setup paths.
-  val repoDir = mavenizeDir.resolve("repo")!!
-  val repoGroupIdDir = repoDir.resolve(groupId)!!
+  val repoDir = mavenizeDir.resolve("repo")
+  val repoGroupIdDir = repoDir.resolve(groupId)
   val archiveCacheDir = mavenizeDir.resolve("eclipse_archive_cache")
 
   // Retrieve an Eclipse installation.
   val (installationDir, wasUnpacked) = retrieveEclipseInstallation(installationArchiveUrl, archiveCacheDir, forceDownload, log)
   val installationPluginsDir = installationDir.resolve(installationPluginsDirRelative)
 
+  // Check if repository is already installed.
+  val isInstalled = Files.isDirectory(repoGroupIdDir)
+
   // Install bundles if needed.
-  if(wasUnpacked || forceInstall) {
+  if(wasUnpacked || !isInstalled || forceInstall) {
     // Delete repository entries for the group ID.
     deleteNonEmptyDirectoryIfExists(repoGroupIdDir)
 
