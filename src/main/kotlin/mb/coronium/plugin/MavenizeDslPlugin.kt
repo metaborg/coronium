@@ -68,8 +68,10 @@ open class MavenizeExtension {
   var os: EclipseOs = EclipseOs.current()
   var arch: EclipseArch = EclipseArch.current()
   var mirrorUrl: String = "http://ftp.fau.de"
-  var prefixUrl: String = "eclipse/technology/epp/downloads/release/photon/R/eclipse-committers-photon-R"
-  var groupId: String = "eclipse-photon"
+  var majorVersion = "2019-12"
+  var minorVersion = "R"
+  var prefixUrl: String = "eclipse/technology/epp/downloads/release/$majorVersion/$minorVersion/eclipse-committers-$majorVersion-$minorVersion"
+  var groupId: String = "eclipse-$majorVersion-$minorVersion"
   var mavenizeDir: Path = Paths.get(System.getProperty("user.home"), ".mavenize")
 
   val url get() = "$mirrorUrl/$prefixUrl-${os.archiveSuffix}${arch.archiveSuffix}.${os.archiveExtension}"
