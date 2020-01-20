@@ -148,27 +148,31 @@ class BundlePlugin : Plugin<Project> {
         builder.coordinates.name = project.name
       } else if(builder.coordinates.name != project.name) {
         // TODO: set project name from manifest in a Settings plugin, instead of just checking it?
-        log.warning("Project name '${project.name}' differs from manifest name '${builder.coordinates.name}'; using '${project.name}' instead")
+        log.error("Project name '${project.name}' differs from manifest name '${builder.coordinates.name}'; using '${project.name}' instead")
         builder.coordinates.name = project.name
       }
       // Set version from Gradle project if no version was set.
       if(builder.coordinates.version == null) {
-        if(project.version == Project.DEFAULT_VERSION) {
-          error("Cannot configure Eclipse plugin project; no project version was set, nor has a version been set in $manifestFile")
+        builder.coordinates.version = if(project.version == Project.DEFAULT_VERSION) {
+          log.error("No project version was set, nor has a version been set in $manifestFile, defaulting to version 0")
+          BundleVersion.zero()
+        } else {
+          project.eclipseVersion
         }
-        builder.coordinates.version = project.eclipseVersion
       }
       // Add bundle compile dependencies from Gradle project.
       for(dependency in project.bundleCompileConfig(reexport = true).dependencies) {
         if(dependency.version == null) {
-          error("Cannot convert Gradle bundle api dependency '$dependency' to a Require-Bundle dependency, as it it has no version")
+          log.error("Cannot convert Gradle bundle (reexported) dependency '$dependency' to a Require-Bundle dependency, as it it has no version. This dependency will not be included in the bundle manifest, probably making the bundle unusable in OSGi/Eclipse")
+          continue;
         }
         val version = MavenVersionOrRange.parse(dependency.version!!).toEclipse()
         builder.requiredBundles.add(BundleDependency(dependency.name, version, DependencyResolution.Mandatory, DependencyVisibility.Reexport))
       }
       for(dependency in project.bundleCompileConfig(reexport = false).dependencies) {
         if(dependency.version == null) {
-          error("Cannot convert Gradle bundle implementation dependency '$dependency' to a Require-Bundle dependency, as it it has no version")
+          log.error("Cannot convert Gradle bundle dependency '$dependency' to a Require-Bundle dependency, as it it has no version. This dependency will not be included in the bundle manifest, probably making the bundle unusable in OSGi/Eclipse")
+          continue;
         }
         val version = MavenVersionOrRange.parse(dependency.version!!).toEclipse()
         builder.requiredBundles.add(BundleDependency(dependency.name, version, DependencyResolution.Mandatory, DependencyVisibility.Private))
