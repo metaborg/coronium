@@ -11,7 +11,9 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ModuleDependency
-import org.gradle.api.plugins.*
+import org.gradle.api.plugins.JavaBasePlugin
+import org.gradle.api.plugins.JavaLibraryPlugin
+import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSet
@@ -21,7 +23,7 @@ import org.gradle.kotlin.dsl.*
 import org.gradle.language.jvm.tasks.ProcessResources
 import java.nio.file.Files
 
-@Suppress("unused")
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 open class BundleExtension(private val project: Project) {
   var createPublication: Boolean = false
 
@@ -53,7 +55,8 @@ open class BundleExtension(private val project: Project) {
     return dependency
   }
 
-  fun requireBundle(dependency: Dependency, reexport: Boolean) {
+  fun requireBundle(dependencyNotation: Any, reexport: Boolean = true) {
+    val dependency = project.dependencies.create(dependencyNotation)
     val compileDependency = dependency.copy()
     if(compileDependency is ModuleDependency) {
       compileDependency.targetConfiguration = ConfigNames.bundleCompileReexport
@@ -78,7 +81,8 @@ open class BundleExtension(private val project: Project) {
     return dependency
   }
 
-  fun requireEmbeddingBundle(dependency: Dependency, reexport: Boolean) {
+  fun requireEmbeddingBundle(dependencyNotation: Any, reexport: Boolean = true) {
+    val dependency = project.dependencies.create(dependencyNotation)
     // Add transitive dependency to a Java configuration, as this dependency contains Java libraries which should not leak into the bundle configurations.
     val javaConfig = project.configurations.getByName(if(reexport) JavaPlugin.API_CONFIGURATION_NAME else JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)
     javaConfig.dependencies.add(dependency)
