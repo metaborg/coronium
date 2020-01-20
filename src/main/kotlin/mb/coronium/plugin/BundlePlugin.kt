@@ -53,11 +53,15 @@ open class BundleExtension(private val project: Project) {
     return dependency
   }
 
-  fun requireBundle(dependency: ModuleDependency, reexport: Boolean) {
+  fun requireBundle(dependency: Dependency, reexport: Boolean) {
     val compileDependency = dependency.copy()
-    compileDependency.targetConfiguration = ConfigNames.bundleCompileReexport
+    if(compileDependency is ModuleDependency) {
+      compileDependency.targetConfiguration = ConfigNames.bundleCompileReexport
+    }
     project.bundleCompileConfig(reexport).dependencies.add(compileDependency)
-    dependency.targetConfiguration = ConfigNames.bundleRuntime
+    if(dependency is ModuleDependency) {
+      dependency.targetConfiguration = ConfigNames.bundleRuntime
+    }
     project.bundleRuntimeConfig().dependencies.add(dependency)
   }
 
@@ -74,13 +78,15 @@ open class BundleExtension(private val project: Project) {
     return dependency
   }
 
-  fun requireEmbeddingBundle(dependency: ModuleDependency, reexport: Boolean) {
+  fun requireEmbeddingBundle(dependency: Dependency, reexport: Boolean) {
     // Add transitive dependency to a Java configuration, as this dependency contains Java libraries which should not leak into the bundle configurations.
     val javaConfig = project.configurations.getByName(if(reexport) JavaPlugin.API_CONFIGURATION_NAME else JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)
     javaConfig.dependencies.add(dependency)
     // Add non-transitive dependency to bundle configurations, to prevent Java dependencies from leaking into the bundle configurations.
     val bundleDependency = dependency.copy()
-    bundleDependency.isTransitive = false
+    if(bundleDependency is ModuleDependency) {
+      bundleDependency.isTransitive = false
+    }
     project.bundleCompileConfig(reexport).dependencies.add(bundleDependency)
     project.bundleRuntimeConfig().dependencies.add(bundleDependency)
   }
