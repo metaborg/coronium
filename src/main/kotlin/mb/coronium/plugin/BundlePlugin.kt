@@ -21,10 +21,12 @@ import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.*
 import org.gradle.language.jvm.tasks.ProcessResources
+import java.io.File
 import java.nio.file.Files
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 open class BundleExtension(private val project: Project) {
+  var manifestFile: File = project.file("META-INF/MANIFEST.MF")
   var createPublication: Boolean = false
 
 
@@ -126,10 +128,10 @@ class BundlePlugin : Plugin<Project> {
       runtimeOnlyConfig.extendsFrom(project.bundleRuntimeConfig())
     }
 
-    // Read META-INF/MANIFEST.MF into manifest, if any.
-    val manifestFile = project.file("META-INF/MANIFEST.MF").toPath()
+    // Read manifest file if it exists.
+    val manifestFile = extension.manifestFile.toPath()
     val manifest = run {
-      if(manifestFile != null) {
+      if(Files.exists(manifestFile)) {
         readManifestFromFile(manifestFile)
       } else {
         null
@@ -148,13 +150,13 @@ class BundlePlugin : Plugin<Project> {
         builder.coordinates.name = project.name
       } else if(builder.coordinates.name != project.name) {
         // TODO: set project name from manifest in a Settings plugin, instead of just checking it?
-        log.error("Project name '${project.name}' differs from manifest name '${builder.coordinates.name}'; using '${project.name}' instead")
+        log.warning("Project name '${project.name}' differs from manifest name '${builder.coordinates.name}'; using '${project.name}' instead")
         builder.coordinates.name = project.name
       }
       // Set version from Gradle project if no version was set.
       if(builder.coordinates.version == null) {
         builder.coordinates.version = if(project.version == Project.DEFAULT_VERSION) {
-          log.error("No project version was set, nor has a version been set in $manifestFile, defaulting to version 0")
+          log.warning("No project version was set, nor has a version been set in $manifestFile, defaulting to version 0")
           BundleVersion.zero()
         } else {
           project.eclipseVersion
@@ -163,7 +165,7 @@ class BundlePlugin : Plugin<Project> {
       // Add bundle compile dependencies from Gradle project.
       for(dependency in project.bundleCompileConfig(reexport = true).dependencies) {
         if(dependency.version == null) {
-          log.error("Cannot convert Gradle bundle (reexported) dependency '$dependency' to a Require-Bundle dependency, as it it has no version. This dependency will not be included in the bundle manifest, probably making the bundle unusable in OSGi/Eclipse")
+          log.warning("Cannot convert Gradle bundle (reexported) dependency '$dependency' to a Require-Bundle dependency, as it it has no version. This dependency will not be included in the bundle manifest, probably making the bundle unusable in OSGi/Eclipse")
           continue;
         }
         val version = MavenVersionOrRange.parse(dependency.version!!).toEclipse()
@@ -171,7 +173,7 @@ class BundlePlugin : Plugin<Project> {
       }
       for(dependency in project.bundleCompileConfig(reexport = false).dependencies) {
         if(dependency.version == null) {
-          log.error("Cannot convert Gradle bundle dependency '$dependency' to a Require-Bundle dependency, as it it has no version. This dependency will not be included in the bundle manifest, probably making the bundle unusable in OSGi/Eclipse")
+          log.warning("Cannot convert Gradle bundle dependency '$dependency' to a Require-Bundle dependency, as it it has no version. This dependency will not be included in the bundle manifest, probably making the bundle unusable in OSGi/Eclipse")
           continue;
         }
         val version = MavenVersionOrRange.parse(dependency.version!!).toEclipse()
