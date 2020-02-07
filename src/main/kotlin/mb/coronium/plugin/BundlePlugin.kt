@@ -1,12 +1,26 @@
 package mb.coronium.plugin
 
 import mb.coronium.mavenize.toEclipse
-import mb.coronium.model.eclipse.*
+import mb.coronium.model.eclipse.BuildProperties
+import mb.coronium.model.eclipse.Bundle
+import mb.coronium.model.eclipse.BundleDependency
+import mb.coronium.model.eclipse.BundleVersion
+import mb.coronium.model.eclipse.DependencyResolution
+import mb.coronium.model.eclipse.DependencyVisibility
 import mb.coronium.model.maven.MavenVersionOrRange
-import mb.coronium.plugin.internal.*
+import mb.coronium.plugin.internal.ConfigNames
+import mb.coronium.plugin.internal.CoroniumBasePlugin
+import mb.coronium.plugin.internal.MavenizePlugin
+import mb.coronium.plugin.internal.bundleCompileConfig
+import mb.coronium.plugin.internal.bundleRuntimeConfig
+import mb.coronium.plugin.internal.mavenizedEclipseInstallation
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
-import mb.coronium.util.*
+import mb.coronium.util.GradleLog
+import mb.coronium.util.eclipseVersion
+import mb.coronium.util.readManifestFromFile
+import mb.coronium.util.toGradleDependency
+import mb.coronium.util.toStringMap
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
@@ -30,8 +44,8 @@ open class BundleExtension(private val project: Project) {
   var createPublication: Boolean = false
 
 
-  private fun createDependency(group: String, name: String, version: String, configuration: String? = null) =
-    project.dependencies.create(group, name, version, configuration)
+  private fun createDependency(group: String, name: String, version: String?, configuration: String? = null, classifier: String? = null, ext: String? = null) =
+    project.dependencies.create(group, name, version, configuration, classifier, ext)
 
   private fun createDependency(projectPath: String, configuration: String? = null) =
     project.dependencies.project(projectPath, configuration)
@@ -45,20 +59,23 @@ open class BundleExtension(private val project: Project) {
   }
 
 
-  fun requireBundle(group: String, name: String, version: String, reexport: Boolean = true): Dependency {
-    val dependency = createDependency(group, name, version)
+  fun requireBundleModule(group: String, name: String, version: String?, classifier: String? = null, ext: String? = null, reexport: Boolean = true): Dependency {
+    val dependency = createDependency(group, name, version, classifier, ext)
     requireBundle(dependency, reexport)
     return dependency
   }
 
-  fun requireBundle(projectPath: String, reexport: Boolean = true): Dependency {
+  fun requireBundleProject(projectPath: String, reexport: Boolean = true): Dependency {
     val dependency = createDependency(projectPath)
     requireBundle(dependency, reexport)
     return dependency
   }
 
   fun requireBundle(dependencyNotation: Any, reexport: Boolean = true) {
-    val dependency = project.dependencies.create(dependencyNotation)
+    requireBundle(project.dependencies.create(dependencyNotation), reexport)
+  }
+
+  fun requireBundle(dependency: Dependency, reexport: Boolean = true) {
     val compileDependency = dependency.copy()
     if(compileDependency is ModuleDependency) {
       compileDependency.targetConfiguration = ConfigNames.bundleCompileReexport
@@ -71,20 +88,23 @@ open class BundleExtension(private val project: Project) {
   }
 
 
-  fun requireEmbeddingBundle(group: String, name: String, version: String, reexport: Boolean = true): Dependency {
-    val dependency = createDependency(group, name, version)
+  fun requireEmbeddingBundleModule(group: String, name: String, version: String?, classifier: String? = null, ext: String? = null, reexport: Boolean = true): Dependency {
+    val dependency = createDependency(group, name, version, classifier, ext)
     requireEmbeddingBundle(dependency, reexport)
     return dependency
   }
 
-  fun requireEmbeddingBundle(projectPath: String, reexport: Boolean = true): Dependency {
+  fun requireEmbeddingBundleProject(projectPath: String, reexport: Boolean = true): Dependency {
     val dependency = createDependency(projectPath)
     requireEmbeddingBundle(dependency, reexport)
     return dependency
   }
 
   fun requireEmbeddingBundle(dependencyNotation: Any, reexport: Boolean = true) {
-    val dependency = project.dependencies.create(dependencyNotation)
+    requireEmbeddingBundle(project.dependencies.create(dependencyNotation), reexport)
+  }
+
+  fun requireEmbeddingBundle(dependency: Dependency, reexport: Boolean = true) {
     // Add transitive dependency to a Java configuration, as this dependency contains Java libraries which should not leak into the bundle configurations.
     val javaConfig = project.configurations.getByName(if(reexport) JavaPlugin.API_CONFIGURATION_NAME else JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)
     javaConfig.dependencies.add(dependency)
