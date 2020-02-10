@@ -3,10 +3,15 @@ package mb.coronium.plugin
 import mb.coronium.mavenize.toMaven
 import mb.coronium.model.eclipse.BuildProperties
 import mb.coronium.model.eclipse.Feature
-import mb.coronium.plugin.internal.*
+import mb.coronium.plugin.internal.CoroniumBasePlugin
+import mb.coronium.plugin.internal.MavenizePlugin
+import mb.coronium.plugin.internal.bundleRuntimeConfig
+import mb.coronium.plugin.internal.mavenizedEclipseInstallation
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
-import mb.coronium.util.*
+import mb.coronium.util.GradleLog
+import mb.coronium.util.eclipseVersion
+import mb.coronium.util.toGradleDependency
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
@@ -52,7 +57,7 @@ class FeaturePlugin : Plugin<Project> {
     project.pluginManager.apply(CoroniumBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
     project.extensions.add("feature", FeatureExtension(project))
-    project.afterEvaluate { configure(this) }
+    project.gradle.projectsEvaluated { configure(project) }
   }
 
   private fun configure(project: Project) {

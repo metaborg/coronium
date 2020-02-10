@@ -125,7 +125,7 @@ class BundlePlugin : Plugin<Project> {
     project.pluginManager.apply(MavenizeDslPlugin::class)
     project.pluginManager.apply(JavaBasePlugin::class)
     project.extensions.add("bundle", BundleExtension(project))
-    project.afterEvaluate { configure(this) }
+    project.gradle.projectsEvaluated { configure(project) }
   }
 
   private fun configure(project: Project) {

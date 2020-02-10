@@ -92,7 +92,7 @@ class RepositoryPlugin : Plugin<Project> {
     project.pluginManager.apply(CoroniumBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
     project.extensions.add("repository", RepositoryExtension(project))
-    project.afterEvaluate { configure(this) }
+    project.gradle.projectsEvaluated { configure(project) }
   }
 
   private fun configure(project: Project) {
