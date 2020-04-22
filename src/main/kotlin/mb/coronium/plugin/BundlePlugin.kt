@@ -8,6 +8,7 @@ import mb.coronium.model.eclipse.BundleVersion
 import mb.coronium.model.eclipse.DependencyResolution
 import mb.coronium.model.eclipse.DependencyVisibility
 import mb.coronium.model.maven.MavenVersionOrRange
+import mb.coronium.model.maven.MavenVersionRange
 import mb.coronium.plugin.internal.ConfigNames
 import mb.coronium.plugin.internal.CoroniumBasePlugin
 import mb.coronium.plugin.internal.MavenizePlugin
@@ -184,19 +185,21 @@ class BundlePlugin : Plugin<Project> {
       }
       // Add bundle compile dependencies from Gradle project.
       for(dependency in project.bundleCompileConfig(reexport = true).dependencies) {
-        if(dependency.version == null) {
-          log.warning("Cannot convert Gradle bundle (reexported) dependency '$dependency' to a Require-Bundle dependency, as it it has no version. This dependency will not be included in the bundle manifest, probably making the bundle unusable in OSGi/Eclipse")
-          continue;
-        }
-        val version = MavenVersionOrRange.parse(dependency.version!!).toEclipse()
+        val version = if(dependency.version != null) {
+          MavenVersionOrRange.parse(dependency.version!!)
+        } else {
+          log.warning("Gradle bundle (reexported) dependency '$dependency' has no version. Using '0' as version, which matches any version, which may not work properly in OSGi/Eclipse")
+          MavenVersionRange.any()
+        }.toEclipse()
         builder.requiredBundles.add(BundleDependency(dependency.name, version, DependencyResolution.Mandatory, DependencyVisibility.Reexport))
       }
       for(dependency in project.bundleCompileConfig(reexport = false).dependencies) {
-        if(dependency.version == null) {
-          log.warning("Cannot convert Gradle bundle dependency '$dependency' to a Require-Bundle dependency, as it it has no version. This dependency will not be included in the bundle manifest, probably making the bundle unusable in OSGi/Eclipse")
-          continue;
-        }
-        val version = MavenVersionOrRange.parse(dependency.version!!).toEclipse()
+        val version = (if(dependency.version != null) {
+          MavenVersionOrRange.parse(dependency.version!!)
+        } else {
+          log.warning("Gradle bundle dependency '$dependency' has no version. Using '0' as version, which matches any version, which may not work properly in OSGi/Eclipse")
+          MavenVersionRange.any()
+        }).toEclipse()
         builder.requiredBundles.add(BundleDependency(dependency.name, version, DependencyResolution.Mandatory, DependencyVisibility.Private))
       }
       builder.build()
