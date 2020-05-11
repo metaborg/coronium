@@ -60,7 +60,7 @@ open class RepositoryExtension(private val project: Project) {
   }
 
   private fun requireFeature(dependency: Dependency) {
-    project.bundleRuntimeConfig().dependencies.add(dependency)
+    project.bundleRuntimeClasspathConfig().dependencies.add(dependency) // TODO: fix wrong configuration
   }
 
 
@@ -104,7 +104,7 @@ class RepositoryPlugin : Plugin<Project> {
     project.pluginManager.apply(MavenizePlugin::class)
     val mavenized = project.mavenizedEclipseInstallation()
 
-    val bundleRuntimeConfig = project.bundleRuntimeConfig()
+    val bundleRuntimeConfig = project.bundleRuntimeClasspathConfig() // TODO: fix wrong configuration
 
     // Build repository model from repository description file (category.xml or site.xml) and Gradle project.
     val repository = run {
