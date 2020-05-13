@@ -12,7 +12,6 @@ import mb.coronium.model.maven.MavenVersionOrRange
 import mb.coronium.plugin.internal.CoroniumBasePlugin
 import mb.coronium.plugin.internal.MavenizePlugin
 import mb.coronium.plugin.internal.bundleEmbedClasspath
-import mb.coronium.plugin.internal.bundleEmbedImplementation
 import mb.coronium.plugin.internal.bundleRuntimeClasspath
 import mb.coronium.plugin.internal.mavenizedEclipseInstallation
 import mb.coronium.plugin.internal.requireBundlePrivate
@@ -72,22 +71,22 @@ class BundlePlugin : Plugin<Project> {
 
     configureBuildPropertiesFile(project)
     configureFinalizeManifestTask(project, extension)
-    configureBndTask(project, extension)
+    configureBndTask(project)
     configureRunTask(project, mavenized)
   }
 
-  private fun configureBndTask(project: Project, extension: BundleExtension) {
+  private fun configureBndTask(project: Project) {
     project.pluginManager.apply(aQute.bnd.gradle.BndBuilderPlugin::class)
     project.tasks.named<Jar>("jar").configure {
       withConvention(aQute.bnd.gradle.BundleTaskConvention::class) {
-        // Let BND use the runtime classpath, since this bundle is used for bundling runtime dependencies.
         setClasspath(project.bundleEmbedClasspath())
       }
       manifest {
         attributes(
           Pair("Import-Package", ""), // Disable imports
           Pair("-nouses", "true"), // Disable 'uses' directive generation for exports.
-          Pair("-nodefaultversion", "true") // Disable 'version' directive generation for exports.
+          Pair("-nodefaultversion", "true"), // Disable 'version' directive generation for exports.
+          Pair("-fixupmessages", "Classpath is empty, cannot be found on the classpath") // Ignore some warnings caused by current setup.
         )
       }
     }
@@ -217,7 +216,6 @@ class BundlePlugin : Plugin<Project> {
         jarTask.manifest.attributes(bundle.writeToManifestAttributes())
       }
     }
-    //project.tasks.getByName(JavaPlugin.COMPILE_JAVA_TASK_NAME).dependsOn(finalizeManifestTask)
     jarTask.dependsOn(finalizeManifestTask)
   }
 

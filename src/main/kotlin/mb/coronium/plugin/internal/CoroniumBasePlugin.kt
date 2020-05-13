@@ -95,7 +95,7 @@ open class CoroniumBasePlugin @Inject constructor(
 
 
     // Internal (resolvable) configurations
-    val bundleRuntimeClasspath = project.configurations.create(bundleRuntimeClasspath) {
+    project.configurations.create(bundleRuntimeClasspath) {
       description = "Classpath for executing this bundle in the target platform"
       isCanBeConsumed = false
       isCanBeResolved = true
@@ -103,15 +103,14 @@ open class CoroniumBasePlugin @Inject constructor(
       extendsFrom(bundleApi, bundleImplementation)
       attributes.attribute(Usage.USAGE_ATTRIBUTE, bundleRuntime)
     }
-    val bundleEmbedClasspath = project.configurations.create(Companion.bundleEmbedClasspath) {
+    project.configurations.create(bundleEmbedClasspath) {
       description = "Classpath for JARs to embed into the bundle"
       isCanBeConsumed = false
       isCanBeResolved = true
       isVisible = false
       extendsFrom(bundleEmbedImplementation)
-      //attributes.attribute(Usage.USAGE_ATTRIBUTE, bundleRuntime)
     }
-    val requireBundleReexport = project.configurations.create(requireBundleReexport) {
+    project.configurations.create(requireBundleReexport) {
       description = "Require-Bundle dependencies with reexport visibility"
       isCanBeConsumed = false
       isCanBeResolved = true
@@ -119,7 +118,7 @@ open class CoroniumBasePlugin @Inject constructor(
       isTransitive = false // Does not need to be transitive, only interested in direct dependencies.
       extendsFrom(bundleApi, bundleTargetPlatformApi)
     }
-    val requireBundlePrivate = project.configurations.create(requireBundlePrivate) {
+    project.configurations.create(requireBundlePrivate) {
       description = "Require-Bundle dependencies with private visibility"
       isCanBeConsumed = false
       isCanBeResolved = true
@@ -142,15 +141,6 @@ open class CoroniumBasePlugin @Inject constructor(
     }
   }
 }
-
-internal fun Project.bundleApi(): Configuration = this.configurations.getByName(CoroniumBasePlugin.bundleApi)
-internal fun Project.bundleImplementation(): Configuration = this.configurations.getByName(CoroniumBasePlugin.bundleImplementation)
-internal fun Project.bundleEmbedApi(): Configuration = this.configurations.getByName(CoroniumBasePlugin.bundleEmbedApi)
-internal fun Project.bundleEmbedImplementation(): Configuration = this.configurations.getByName(CoroniumBasePlugin.bundleEmbedImplementation)
-internal fun Project.bundleTargetPlatformApi(): Configuration = this.configurations.getByName(CoroniumBasePlugin.bundleTargetPlatformApi)
-internal fun Project.bundleTargetPlatformImplementation(): Configuration = this.configurations.getByName(CoroniumBasePlugin.bundleTargetPlatformImplementation)
-
-internal fun Project.bundleRuntimeElements(): Configuration = this.configurations.getByName(CoroniumBasePlugin.bundleRuntimeElements)
 
 internal fun Project.bundleRuntimeClasspath(): Configuration = this.configurations.getByName(CoroniumBasePlugin.bundleRuntimeClasspath)
 internal fun Project.bundleEmbedClasspath(): Configuration = this.configurations.getByName(CoroniumBasePlugin.bundleEmbedClasspath)
