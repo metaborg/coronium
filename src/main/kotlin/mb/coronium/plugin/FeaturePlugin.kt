@@ -5,7 +5,7 @@ import mb.coronium.model.eclipse.BuildProperties
 import mb.coronium.model.eclipse.Feature
 import mb.coronium.plugin.internal.CoroniumBasePlugin
 import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.bundleRuntimeConfig
+import mb.coronium.plugin.internal.bundleRuntimeClasspath
 import mb.coronium.plugin.internal.mavenizedEclipseInstallation
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
@@ -47,7 +47,7 @@ open class FeatureExtension(private val project: Project) {
   }
 
   private fun requireBundle(dependency: Dependency) {
-    project.bundleRuntimeConfig().dependencies.add(dependency)
+    project.bundleRuntimeClasspath().dependencies.add(dependency) // TODO: fix wrong configuration
   }
 }
 
@@ -67,7 +67,7 @@ class FeaturePlugin : Plugin<Project> {
     project.pluginManager.apply(MavenizePlugin::class)
     val mavenized = project.mavenizedEclipseInstallation()
 
-    val bundleRuntimeConfig = project.bundleRuntimeConfig()
+    val bundleRuntimeConfig = project.bundleRuntimeClasspath() // TODO: fix wrong configuration
 
     // Build feature model from feature.xml and Gradle project.
     val feature = run {
@@ -112,7 +112,7 @@ class FeaturePlugin : Plugin<Project> {
           // Skip dependencies to mavenized bundles, as they are provided and should not be included in features.
           if(!isMavenizedBundle) {
             val gradleDependency = coords.toGradleDependency(project)
-            project.bundleRuntimeConfig().dependencies.add(gradleDependency)
+            project.bundleRuntimeClasspath().dependencies.add(gradleDependency) // TODO: fix wrong configuration
           }
         }
       }
@@ -142,7 +142,7 @@ class FeaturePlugin : Plugin<Project> {
       val featureXmlFile = featureXmlDir.resolve("feature.xml").toPath()
       outputs.file(featureXmlFile)
       doLast {
-        val mergedFeature = feature.mergeWith(project.bundleRuntimeConfig())
+        val mergedFeature = feature.mergeWith(project.bundleRuntimeClasspath()) // TODO: fix wrong configuration
         Files.newOutputStream(featureXmlFile).buffered().use { outputStream ->
           mergedFeature.writeToFeatureXml(outputStream)
           outputStream.flush()

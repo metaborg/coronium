@@ -3,7 +3,7 @@ plugins {
   id("org.metaborg.gradle.config.kotlin-gradle-plugin") version "0.3.21"
   id("org.metaborg.gradle.config.junit-testing") version "0.3.21"
   id("org.metaborg.gitonium") version "0.1.2"
-  kotlin("jvm") version "1.3.61"
+  kotlin("jvm") version "1.3.41" // 1.3.41 in sync with kotlin-dsl plugin.
   `kotlin-dsl`
 }
 
@@ -26,10 +26,6 @@ gradlePlugin {
       id = "org.metaborg.coronium.repository"
       implementationClass = "mb.coronium.plugin.RepositoryPlugin"
     }
-    create("coronium-embedding") {
-      id = "org.metaborg.coronium.embedding"
-      implementationClass = "mb.coronium.plugin.EmbeddingPlugin"
-    }
   }
 }
 
@@ -38,6 +34,7 @@ val embedded: Configuration = configurations.create("embedded")
 configurations.getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(embedded)
 val mavenResolverVersion = "1.3.3"
 val mavenVersion = "3.6.0"
+val bndGradleVersion = "5.0.1"
 dependencies {
   embedded("org.apache.maven.resolver:maven-resolver-api:$mavenResolverVersion")
   embedded("org.apache.maven.resolver:maven-resolver-impl:$mavenResolverVersion")
@@ -45,6 +42,7 @@ dependencies {
   embedded("org.apache.maven.resolver:maven-resolver-transport-file:$mavenResolverVersion")
   embedded("org.apache.maven:maven-resolver-provider:$mavenVersion")
   embedded("org.apache.commons:commons-compress:1.18")
+  embedded("biz.aQute.bnd:biz.aQute.bnd.gradle:$bndGradleVersion")
 }
 tasks {
   jar {

@@ -1,5 +1,6 @@
 package mb.coronium.plugin
 
+import mb.coronium.mavenize.MavenizedEclipseInstallation
 import mb.coronium.mavenize.toEclipse
 import mb.coronium.model.eclipse.BuildProperties
 import mb.coronium.model.eclipse.Bundle
@@ -8,29 +9,24 @@ import mb.coronium.model.eclipse.BundleVersion
 import mb.coronium.model.eclipse.DependencyResolution
 import mb.coronium.model.eclipse.DependencyVisibility
 import mb.coronium.model.maven.MavenVersionOrRange
-import mb.coronium.model.maven.MavenVersionRange
-import mb.coronium.plugin.internal.ConfigNames
 import mb.coronium.plugin.internal.CoroniumBasePlugin
 import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.bundleCompileConfig
-import mb.coronium.plugin.internal.bundleRuntimeConfig
+import mb.coronium.plugin.internal.bundleEmbedClasspath
+import mb.coronium.plugin.internal.bundleRuntimeClasspath
 import mb.coronium.plugin.internal.mavenizedEclipseInstallation
+import mb.coronium.plugin.internal.requireBundlePrivate
+import mb.coronium.plugin.internal.requireBundleReexport
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.GradleLog
 import mb.coronium.util.eclipseVersion
 import mb.coronium.util.readManifestFromFile
-import mb.coronium.util.toGradleDependency
 import mb.coronium.util.toStringMap
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.ModuleDependency
-import org.gradle.api.plugins.JavaBasePlugin
-import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.publish.PublishingExtension
-import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
@@ -39,84 +35,20 @@ import org.gradle.language.jvm.tasks.ProcessResources
 import java.io.File
 import java.nio.file.Files
 
-@Suppress("unused", "MemberVisibilityCanBePrivate")
+@Suppress("UnstableApiUsage")
 open class BundleExtension(private val project: Project) {
-  var manifestFile: File = project.file("META-INF/MANIFEST.MF")
-  var createPublication: Boolean = false
+  var manifestFile: Property<File> = project.objects.property()
 
-
-  private fun createDependency(group: String, name: String, version: String?, configuration: String? = null, classifier: String? = null, ext: String? = null) =
-    project.dependencies.create(group, name, version, configuration, classifier, ext)
-
-  private fun createDependency(projectPath: String, configuration: String? = null) =
-    project.dependencies.project(projectPath, configuration)
-
-
-  fun requireTargetPlatform(name: String, version: String? = null, reexport: Boolean = true): Dependency {
-    val group = project.mavenizeExtension().groupId
-    val dependency = createDependency(group, name, version ?: "[0,)", Dependency.DEFAULT_CONFIGURATION)
-    project.bundleCompileConfig(reexport).dependencies.add(dependency)
-    return dependency
+  fun createEclipseTargetPlatformDependency(name: String, version: String? = null): Dependency {
+    return project.dependencies.create(project.mavenizeExtension().groupId, name, version ?: "[0,)")
   }
 
 
-  fun requireBundleModule(group: String, name: String, version: String?, classifier: String? = null, ext: String? = null, reexport: Boolean = true): Dependency {
-    val dependency = createDependency(group, name, version, classifier, ext)
-    requireBundle(dependency, reexport)
-    return dependency
+  init {
+    manifestFile.convention(project.file("META-INF/MANIFEST.MF"))
   }
 
-  fun requireBundleProject(projectPath: String, reexport: Boolean = true): Dependency {
-    val dependency = createDependency(projectPath)
-    requireBundle(dependency, reexport)
-    return dependency
-  }
-
-  fun requireBundle(dependencyNotation: Any, reexport: Boolean = true) {
-    requireBundle(project.dependencies.create(dependencyNotation), reexport)
-  }
-
-  fun requireBundle(dependency: Dependency, reexport: Boolean = true) {
-    val compileDependency = dependency.copy()
-    if(compileDependency is ModuleDependency) {
-      compileDependency.targetConfiguration = ConfigNames.bundleCompileReexport
-    }
-    project.bundleCompileConfig(reexport).dependencies.add(compileDependency)
-    if(dependency is ModuleDependency) {
-      dependency.targetConfiguration = ConfigNames.bundleRuntime
-    }
-    project.bundleRuntimeConfig().dependencies.add(dependency)
-  }
-
-
-  fun requireEmbeddingBundleModule(group: String, name: String, version: String?, classifier: String? = null, ext: String? = null, reexport: Boolean = true): Dependency {
-    val dependency = createDependency(group, name, version, classifier, ext)
-    requireEmbeddingBundle(dependency, reexport)
-    return dependency
-  }
-
-  fun requireEmbeddingBundleProject(projectPath: String, reexport: Boolean = true): Dependency {
-    val dependency = createDependency(projectPath)
-    requireEmbeddingBundle(dependency, reexport)
-    return dependency
-  }
-
-  fun requireEmbeddingBundle(dependencyNotation: Any, reexport: Boolean = true) {
-    requireEmbeddingBundle(project.dependencies.create(dependencyNotation), reexport)
-  }
-
-  fun requireEmbeddingBundle(dependency: Dependency, reexport: Boolean = true) {
-    // Add transitive dependency to a Java configuration, as this dependency contains Java libraries which should not leak into the bundle configurations.
-    val javaConfig = project.configurations.getByName(if(reexport) JavaPlugin.API_CONFIGURATION_NAME else JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)
-    javaConfig.dependencies.add(dependency)
-    // Add non-transitive dependency to bundle configurations, to prevent Java dependencies from leaking into the bundle configurations.
-    val bundleDependency = dependency.copy()
-    if(bundleDependency is ModuleDependency) {
-      bundleDependency.isTransitive = false
-    }
-    project.bundleCompileConfig(reexport).dependencies.add(bundleDependency)
-    project.bundleRuntimeConfig().dependencies.add(bundleDependency)
-  }
+  internal val log: GradleLog = GradleLog(project.logger)
 }
 
 @Suppress("unused")
@@ -124,136 +56,43 @@ class BundlePlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.pluginManager.apply(CoroniumBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
-    project.pluginManager.apply(JavaBasePlugin::class)
-    project.extensions.add("bundle", BundleExtension(project))
-    project.gradle.projectsEvaluated { configure(project) }
+
+    val extension = BundleExtension(project)
+    project.extensions.add("bundle", extension)
+
+    configure(project, extension)
   }
 
-  private fun configure(project: Project) {
-    val log = GradleLog(project.logger)
-    val extension = project.extensions.getByType<BundleExtension>()
-
+  private fun configure(project: Project, extension: BundleExtension) {
+    // HACK: eagerly load Mavenize Plugin, as it adds a repository that must be available in the configuration phase.
+    // This currently disables the ability for users to customize the Eclipse target platform.
     project.pluginManager.apply(MavenizePlugin::class)
     val mavenized = project.mavenizedEclipseInstallation()
 
-    run {
-      // Apply Java library plugin to get access to its configurations.
-      project.pluginManager.apply(JavaLibraryPlugin::class)
+    configureBuildPropertiesFile(project)
+    configureFinalizeManifestTask(project, extension)
+    configureBndTask(project)
+    configureRunTask(project, mavenized)
+  }
 
-      // Extend their configurations with Coronium's.
-      val compileOnlyConfig = project.configurations.getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)
-      compileOnlyConfig.extendsFrom(project.bundleCompileConfig(false))
-      compileOnlyConfig.extendsFrom(project.bundleCompileConfig(true))
-
-      val runtimeOnlyConfig = project.configurations.getByName(JavaPlugin.RUNTIME_ONLY_CONFIGURATION_NAME)
-      runtimeOnlyConfig.extendsFrom(project.bundleRuntimeConfig())
-    }
-
-    // Read manifest file if it exists.
-    val manifestFile = extension.manifestFile.toPath()
-    val manifest = run {
-      if(Files.exists(manifestFile)) {
-        readManifestFromFile(manifestFile)
-      } else {
-        null
+  private fun configureBndTask(project: Project) {
+    project.pluginManager.apply(aQute.bnd.gradle.BndBuilderPlugin::class)
+    project.tasks.named<Jar>("jar").configure {
+      withConvention(aQute.bnd.gradle.BundleTaskConvention::class) {
+        setClasspath(project.bundleEmbedClasspath())
       }
-    }
-
-    // Build bundle model from manifest and Gradle project.
-    val bundle = run {
-      val builder = Bundle.Builder()
-      // Read bundle configuration from manifest if it exists.
-      if(manifest != null) {
-        builder.readFromManifestAttributes(manifest.mainAttributes, log)
-      }
-      // Set name fom Gradle project if no name was set, or if the name does not match.
-      if(builder.coordinates.name == null) {
-        builder.coordinates.name = project.name
-      } else if(builder.coordinates.name != project.name) {
-        // TODO: set project name from manifest in a Settings plugin, instead of just checking it?
-        log.warning("Project name '${project.name}' differs from manifest name '${builder.coordinates.name}'; using '${project.name}' instead")
-        builder.coordinates.name = project.name
-      }
-      // Set version from Gradle project if no version was set.
-      if(builder.coordinates.version == null) {
-        builder.coordinates.version = if(project.version == Project.DEFAULT_VERSION) {
-          log.warning("No project version was set, nor has a version been set in $manifestFile, defaulting to version 0")
-          BundleVersion.zero()
-        } else {
-          project.eclipseVersion
-        }
-      }
-      // Add bundle compile dependencies from Gradle project.
-      for(dependency in project.bundleCompileConfig(reexport = true).dependencies) {
-        val version = if(dependency.version != null) {
-          MavenVersionOrRange.parse(dependency.version!!)
-        } else {
-          log.warning("Gradle bundle (reexported) dependency '$dependency' has no version. Using '0' as version, which matches any version, which may not work properly in OSGi/Eclipse")
-          MavenVersionRange.any()
-        }.toEclipse()
-        builder.requiredBundles.add(BundleDependency(dependency.name, version, DependencyResolution.Mandatory, DependencyVisibility.Reexport))
-      }
-      for(dependency in project.bundleCompileConfig(reexport = false).dependencies) {
-        val version = (if(dependency.version != null) {
-          MavenVersionOrRange.parse(dependency.version!!)
-        } else {
-          log.warning("Gradle bundle dependency '$dependency' has no version. Using '0' as version, which matches any version, which may not work properly in OSGi/Eclipse")
-          MavenVersionRange.any()
-        }).toEclipse()
-        builder.requiredBundles.add(BundleDependency(dependency.name, version, DependencyResolution.Mandatory, DependencyVisibility.Private))
-      }
-      builder.build()
-    }
-
-    // Update Gradle project model from bundle model.
-    run {
-      // Convert bundle into a Maven (Gradle-compatible) artifact.
-      val groupId = project.group.toString()
-      val converter = mavenized.createConverter(groupId)
-      converter.recordBundle(bundle, groupId)
-      val mavenArtifact = converter.convert(bundle)
-      // Set project version only if it it has not been set yet.
-      if(project.version == Project.DEFAULT_VERSION) {
-        project.version = mavenArtifact.coordinates.version
-      }
-      // Add dependencies from model when none are declared. Not using default dependencies due to https://github.com/gradle/gradle/issues/7943.
-      if(project.bundleCompileConfig(reexport = true).allDependencies.isEmpty()) {
-        for(mavenDependency in mavenArtifact.dependencies) {
-          val coords = mavenDependency.coordinates
-          val isMavenizedBundle = mavenized.isMavenizedBundle(coords.groupId, coords.id)
-          val reexport = when(mavenDependency.scope) {
-            "provided" -> false
-            else -> true
-          }
-          val gradleDependency = coords.toGradleDependency(project, Dependency.DEFAULT_CONFIGURATION)
-          project.bundleCompileConfig(reexport).dependencies.add(gradleDependency)
-          if(!isMavenizedBundle) {
-            // Only add runtime dependency when the dependency is not a target platform (Mavenized bundle) dependency.
-            project.bundleRuntimeConfig().dependencies.add(gradleDependency)
-          }
-        }
+      manifest {
+        attributes(
+          Pair("Import-Package", ""), // Disable imports
+          Pair("-nouses", "true"), // Disable 'uses' directive generation for exports.
+          Pair("-nodefaultversion", "true"), // Disable 'version' directive generation for exports.
+          Pair("-fixupmessages", "Classpath is empty, cannot be found on the classpath") // Ignore some warnings caused by current setup.
+        )
       }
     }
+  }
 
-    // Build a final manifest from the existing manifest and the bundle model, and set it in the JAR task.
-    val jarTask = project.tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
-    val prepareManifestTask = project.tasks.create("prepareManifestTask") {
-      // Depend on bundle compile configurations, because they influences how a bundle model is built, which in turn influences the final manifest.
-      dependsOn(project.bundleCompileConfig(reexport = false))
-      inputs.files(project.bundleCompileConfig(reexport = false))
-      dependsOn(project.bundleCompileConfig(reexport = true))
-      inputs.files(project.bundleCompileConfig(reexport = true))
-      // Depend on manifest file, because it influences how the manifest is created, which in turn influences the final manifest.
-      inputs.files(manifestFile)
-      doLast {
-        if(manifest != null) {
-          jarTask.manifest.attributes(manifest.mainAttributes.toStringMap())
-        }
-        jarTask.manifest.attributes(bundle.writeToManifestAttributes())
-      }
-    }
-    jarTask.dependsOn(prepareManifestTask)
-
+  private fun configureBuildPropertiesFile(project: Project) {
     // Process build properties.
     val properties = run {
       val builder = BuildProperties.Builder()
@@ -268,6 +107,7 @@ class BundlePlugin : Plugin<Project> {
       builder.binaryIncludes.removeIf { it == "." || it.startsWith("META-INF") }
       builder.build()
     }
+
     // Set source directories and output directory from build properties.
     project.configure<SourceSetContainer> {
       val mainSourceSet = getByName(SourceSet.MAIN_SOURCE_SET_NAME)
@@ -281,7 +121,9 @@ class BundlePlugin : Plugin<Project> {
         }
       }
     }
+
     // Add resources from build properties.
+    @Suppress("UnstableApiUsage")
     project.tasks.getByName<ProcessResources>(JavaPlugin.PROCESS_RESOURCES_TASK_NAME) {
       from(project.projectDir) {
         for(resource in properties.binaryIncludes) {
@@ -289,49 +131,126 @@ class BundlePlugin : Plugin<Project> {
         }
       }
     }
+  }
 
-    // Export bundle configurations
-    project.artifacts.add(ConfigNames.bundleCompileReexport, jarTask)
-    project.artifacts.add(ConfigNames.bundleRuntime, jarTask)
+  private fun configureFinalizeManifestTask(project: Project, extension: BundleExtension) {
+    val manifestFileProperty = extension.manifestFile
+    val log = extension.log
 
-    // TODO: these configurations are exported, but not yet published, so they will not be available when resolving to
-    //   a published bundle. Publish them via a software component? See:
-    // * https://docs.gradle.org/5.3/javadoc/org/gradle/api/component/SoftwareComponentFactory.html
-    // * https://github.com/gradle/gradle/issues/2355#issuecomment-314917242
-    // * {@link JavaPlugin#registerSoftwareComponents}
+    // Build a final manifest from the manifest's main attributes and bundle model, and set it in the JAR task.
+    val jarTask = project.tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
+    val finalizeManifestTask = project.tasks.create("finalizeManifest") {
+      group = "coronium"
+      description = "Finalizes the JAR manifest from the bundle manifest, and dependencies provided to Gradle into a single manifest in the resulting JAR file"
 
-    if(extension.createPublication) {
-      // Add Java component as main publication.
-      project.pluginManager.withPlugin("maven-publish") {
-        val component = project.components.getByName("java")
-        project.extensions.configure<PublishingExtension> {
-          publications.create<MavenPublication>("Bundle") {
-            from(component)
+      // Depend on bundle compile configurations, because they influence how a bundle model is built, which in turn influences the final manifest.
+      dependsOn(project.requireBundleReexport())
+      inputs.files({ project.requireBundleReexport() }) // Closure to defer configuration resolution until task execution.
+      dependsOn(project.requireBundlePrivate())
+      inputs.files({ project.requireBundlePrivate() }) // Closure to defer configuration resolution until task execution.
+      // Depend on manifest file, because it influences how the manifest is created, which in turn influences the final manifest.
+      inputs.files(manifestFileProperty)
+
+      doLast {
+        manifestFileProperty.finalizeValue()
+        val manifestFile = manifestFileProperty.get().toPath()
+
+        // Read manifest file if it exists.
+        val manifest = run {
+          if(Files.exists(manifestFile)) {
+            readManifestFromFile(manifestFile)
+          } else {
+            null
           }
         }
+
+        // Build bundle model from manifest and Gradle project.
+        val bundle = run {
+          val builder = Bundle.Builder()
+
+          // Read bundle configuration from manifest if it exists.
+          if(manifest != null) {
+            builder.readFromManifestAttributes(manifest.mainAttributes, log)
+          }
+
+          // Set name fom Gradle project if no name was set, or if the name does not match.
+          if(builder.coordinates.name == null) {
+            builder.coordinates.name = project.name
+          } else if(builder.coordinates.name != project.name) {
+            // TODO: set project name from manifest in a Settings plugin, instead of just checking it?
+            log.warning("Project name '${project.name}' differs from bundle coordinates name '${builder.coordinates.name}' in '$manifestFile'; using '${project.name}' instead")
+            builder.coordinates.name = project.name
+          }
+
+          // Set version from Gradle project if no version was set, or if the version does not match.
+          if(builder.coordinates.version == null) {
+            builder.coordinates.version = if(project.version == Project.DEFAULT_VERSION) {
+              log.warning("Project '${project.name}' has no version set (i.e., version is '${Project.DEFAULT_VERSION}'), nor has a version been set in '$manifestFile', defaulting to version '${BundleVersion.zero()}'")
+              BundleVersion.zero()
+            } else {
+              project.eclipseVersion
+            }
+          } else if(builder.coordinates.version != project.eclipseVersion) {
+            log.warning("Eclipsified version '${project.eclipseVersion}' of project '${project.name}' differs from bundle coordinates version '${builder.coordinates.version}' in '$manifestFile'; using '${project.eclipseVersion}' instead")
+            builder.coordinates.version = project.eclipseVersion
+          }
+
+          // Add required bundles from Gradle project.
+          for(artifact in project.requireBundleReexport().resolvedConfiguration.resolvedArtifacts) {
+            val module = artifact.moduleVersion.id
+            val version = MavenVersionOrRange.parse(module.version).toEclipse()
+            builder.requiredBundles.add(BundleDependency(module.name, version, DependencyResolution.Mandatory, DependencyVisibility.Reexport))
+          }
+          for(artifact in project.requireBundlePrivate().resolvedConfiguration.resolvedArtifacts) {
+            val module = artifact.moduleVersion.id
+            val version = MavenVersionOrRange.parse(module.version).toEclipse()
+            builder.requiredBundles.add(BundleDependency(module.name, version, DependencyResolution.Mandatory, DependencyVisibility.Private))
+          }
+
+          builder.build()
+        }
+
+        if(manifest != null) {
+          jarTask.manifest.attributes(manifest.mainAttributes.toStringMap())
+        }
+        jarTask.manifest.attributes(bundle.writeToManifestAttributes())
       }
     }
+    jarTask.dependsOn(finalizeManifestTask)
+  }
+
+  private fun configureRunTask(project: Project, mavenized: MavenizedEclipseInstallation) {
+    val jarTask = project.tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
 
     // Run Eclipse with this plugin and its dependencies.
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
-      val bundleRuntimeConfig = project.bundleRuntimeConfig()
+      group = "coronium"
+      description = "Prepares an Eclipse run configuration for running this plugin in an Eclipse instance"
+
+      val runtimeClasspathConfig = project.bundleRuntimeClasspath()
+
       // Depend on the built bundle JAR.
       dependsOn(jarTask)
       // Depend on the bundle runtime configurations.
-      dependsOn(bundleRuntimeConfig)
-      inputs.files(bundleRuntimeConfig)
+      dependsOn(runtimeClasspathConfig)
+      inputs.files({ runtimeClasspathConfig }) // Closure to defer configuration resolution until task execution.
+
       // Set run configuration from Mavenized Eclipse installation.
       setFromMavenizedEclipseInstallation(mavenized)
+
       doFirst {
         // At task execution time, before the run configuration is prepared, add the JAR as a bundle, and add all
         // runtime dependencies as bundles. This is done at task execution time because it resolves the configurations.
         addBundle(jarTask)
-        for(file in bundleRuntimeConfig) {
+        for(file in runtimeClasspathConfig) {
           addBundle(file)
         }
       }
     }
-    project.tasks.create<EclipseRun>("run") {
+
+    project.tasks.register<EclipseRun>("run") {
+      group = "coronium"
+      description = "Runs this plugin in an Eclipse instance"
       configure(prepareEclipseRunConfigurationTask, mavenized, project.mavenizeExtension())
     }
   }

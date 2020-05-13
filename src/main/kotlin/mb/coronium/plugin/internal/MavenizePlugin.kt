@@ -6,16 +6,13 @@ import mb.coronium.plugin.mavenizeExtension
 import mb.coronium.util.GradleLog
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.dsl.RepositoryHandler
-import org.gradle.api.internal.artifacts.BaseRepositoryFactory
-import org.gradle.api.internal.project.ProjectInternal
-import org.gradle.kotlin.dsl.closureOf
-import org.gradle.kotlin.dsl.extra
+import org.gradle.kotlin.dsl.*
 
 class MavenizePlugin : Plugin<Project> {
   companion object {
     const val mavenizedEclipseInstallationExtraName = "mavenized_eclipse_installation"
   }
+
 
   override fun apply(project: Project) {
     // HACK: eagerly download and Mavenize bundles from Eclipse archive, as they must be available for dependency
@@ -32,18 +29,21 @@ class MavenizePlugin : Plugin<Project> {
       log
     )
 
-    // Add Mavenized repository to project repositories.
-    // HACK: get instance of BaseRepositoryFactory so that we can manually add a custom Maven repository.
-    // From: https://discuss.gradle.org/t/how-can-i-get-hold-of-the-gradle-instance-of-the-repository-factory/6943/6
-    project.run {
-      val repositoryFactory = (this as ProjectInternal).services.get(BaseRepositoryFactory::class.java)
-      this.repositories(closureOf<RepositoryHandler> {
-        val mavenRepo = repositoryFactory.createMavenRepository()
-        mavenRepo.name = "mavenized"
-        mavenRepo.setUrl(mavenized.repoDir)
-        // Add to top of repositories to speed up dependency resolution.
-        addFirst(mavenRepo)
-      })
+    @Suppress("UnstableApiUsage")
+    project.repositories {
+      maven {
+        name = "mavenized"
+        setUrl(mavenized.repoDir)
+        // This repository only resolves to the groupId of the mavenized Eclipse instance.
+        content {
+          includeGroup(extension.groupId)
+        }
+        // Make Gradle look at directory structure when Gradle metadata is enabled, as per: https://github.com/gradle/gradle/issues/11321#issuecomment-552894258
+        metadataSources {
+          mavenPom()
+          artifact()
+        }
+      }
     }
 
     project.extra.set(mavenizedEclipseInstallationExtraName, mavenized)
