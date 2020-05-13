@@ -2,7 +2,8 @@ package mb.coronium.plugin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.kotlin.dsl.getByType
+import org.gradle.api.artifacts.Dependency
+import org.gradle.kotlin.dsl.*
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -64,7 +65,7 @@ enum class EclipseArch(val archiveSuffix: String) {
   }
 }
 
-open class MavenizeExtension {
+open class MavenizeExtension(private val project: Project) {
   var os: EclipseOs = EclipseOs.current()
   var arch: EclipseArch = EclipseArch.current()
   var mirrorUrl: String = "http://ftp.fau.de"
@@ -79,7 +80,7 @@ open class MavenizeExtension {
 
 class MavenizeDslPlugin : Plugin<Project> {
   override fun apply(project: Project) {
-    val extension = MavenizeExtension()
+    val extension = MavenizeExtension(project)
     project.extensions.add("mavenize", extension)
   }
 }

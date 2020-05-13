@@ -11,11 +11,12 @@ import mb.coronium.model.eclipse.DependencyVisibility
 import mb.coronium.model.maven.MavenVersionOrRange
 import mb.coronium.plugin.internal.CoroniumBasePlugin
 import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.bundleRuntimeClasspathConfig
-import mb.coronium.plugin.internal.bundleTargetPlatformConfig
+import mb.coronium.plugin.internal.bundleEmbedClasspath
+import mb.coronium.plugin.internal.bundleEmbedImplementation
+import mb.coronium.plugin.internal.bundleRuntimeClasspath
 import mb.coronium.plugin.internal.mavenizedEclipseInstallation
-import mb.coronium.plugin.internal.requireBundlePrivateConfig
-import mb.coronium.plugin.internal.requireBundleReexportConfig
+import mb.coronium.plugin.internal.requireBundlePrivate
+import mb.coronium.plugin.internal.requireBundleReexport
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.GradleLog
@@ -35,15 +36,12 @@ import org.gradle.language.jvm.tasks.ProcessResources
 import java.io.File
 import java.nio.file.Files
 
-@Suppress("unused", "MemberVisibilityCanBePrivate")
+@Suppress("UnstableApiUsage")
 open class BundleExtension(private val project: Project) {
   var manifestFile: Property<File> = project.objects.property()
 
-  fun requireTargetPlatform(name: String, version: String? = null): Dependency {
-    val group = project.mavenizeExtension().groupId
-    val dependency = project.dependencies.create(group, name, version ?: "[0,)", Dependency.DEFAULT_CONFIGURATION)
-    project.bundleTargetPlatformConfig().dependencies.add(dependency)
-    return dependency
+  fun createEclipseTargetPlatformDependency(name: String, version: String? = null): Dependency {
+    return project.dependencies.create(project.mavenizeExtension().groupId, name, version ?: "[0,)")
   }
 
 
@@ -74,7 +72,25 @@ class BundlePlugin : Plugin<Project> {
 
     configureBuildPropertiesFile(project)
     configureFinalizeManifestTask(project, extension)
+    configureBndTask(project, extension)
     configureRunTask(project, mavenized)
+  }
+
+  private fun configureBndTask(project: Project, extension: BundleExtension) {
+    project.pluginManager.apply(aQute.bnd.gradle.BndBuilderPlugin::class)
+    project.tasks.named<Jar>("jar").configure {
+      withConvention(aQute.bnd.gradle.BundleTaskConvention::class) {
+        // Let BND use the runtime classpath, since this bundle is used for bundling runtime dependencies.
+        setClasspath(project.bundleEmbedClasspath())
+      }
+      manifest {
+        attributes(
+          Pair("Import-Package", ""), // Disable imports
+          Pair("-nouses", "true"), // Disable 'uses' directive generation for exports.
+          Pair("-nodefaultversion", "true") // Disable 'version' directive generation for exports.
+        )
+      }
+    }
   }
 
   private fun configureBuildPropertiesFile(project: Project) {
@@ -108,6 +124,7 @@ class BundlePlugin : Plugin<Project> {
     }
 
     // Add resources from build properties.
+    @Suppress("UnstableApiUsage")
     project.tasks.getByName<ProcessResources>(JavaPlugin.PROCESS_RESOURCES_TASK_NAME) {
       from(project.projectDir) {
         for(resource in properties.binaryIncludes) {
@@ -128,10 +145,10 @@ class BundlePlugin : Plugin<Project> {
       description = "Finalizes the JAR manifest from the bundle manifest, and dependencies provided to Gradle into a single manifest in the resulting JAR file"
 
       // Depend on bundle compile configurations, because they influence how a bundle model is built, which in turn influences the final manifest.
-      dependsOn(project.requireBundleReexportConfig())
-      inputs.files({ project.requireBundleReexportConfig() }) // Closure to defer configuration resolution until task execution.
-      dependsOn(project.requireBundlePrivateConfig())
-      inputs.files({ project.requireBundlePrivateConfig() }) // Closure to defer configuration resolution until task execution.
+      dependsOn(project.requireBundleReexport())
+      inputs.files({ project.requireBundleReexport() }) // Closure to defer configuration resolution until task execution.
+      dependsOn(project.requireBundlePrivate())
+      inputs.files({ project.requireBundlePrivate() }) // Closure to defer configuration resolution until task execution.
       // Depend on manifest file, because it influences how the manifest is created, which in turn influences the final manifest.
       inputs.files(manifestFileProperty)
 
@@ -180,12 +197,12 @@ class BundlePlugin : Plugin<Project> {
           }
 
           // Add required bundles from Gradle project.
-          for(artifact in project.requireBundleReexportConfig().resolvedConfiguration.resolvedArtifacts) {
+          for(artifact in project.requireBundleReexport().resolvedConfiguration.resolvedArtifacts) {
             val module = artifact.moduleVersion.id
             val version = MavenVersionOrRange.parse(module.version).toEclipse()
             builder.requiredBundles.add(BundleDependency(module.name, version, DependencyResolution.Mandatory, DependencyVisibility.Reexport))
           }
-          for(artifact in project.requireBundlePrivateConfig().resolvedConfiguration.resolvedArtifacts) {
+          for(artifact in project.requireBundlePrivate().resolvedConfiguration.resolvedArtifacts) {
             val module = artifact.moduleVersion.id
             val version = MavenVersionOrRange.parse(module.version).toEclipse()
             builder.requiredBundles.add(BundleDependency(module.name, version, DependencyResolution.Mandatory, DependencyVisibility.Private))
@@ -212,7 +229,7 @@ class BundlePlugin : Plugin<Project> {
       group = "coronium"
       description = "Prepares an Eclipse run configuration for running this plugin in an Eclipse instance"
 
-      val runtimeClasspathConfig = project.bundleRuntimeClasspathConfig()
+      val runtimeClasspathConfig = project.bundleRuntimeClasspath()
 
       // Depend on the built bundle JAR.
       dependsOn(jarTask)
