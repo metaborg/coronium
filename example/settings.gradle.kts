@@ -23,6 +23,8 @@ fun String.includeProject(id: String, path: String = "$this/$id") {
   includeProject("complex.platform")
   includeProject("complex.spoofax")
   includeProject("complex.spoofax.eclipse")
+  includeProject("complex.spoofax.eclipse.feature")
   includeProject("complex.tiger")
   includeProject("complex.tiger.eclipse")
+  includeProject("complex.tiger.eclipse.feature")
 }

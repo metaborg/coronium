@@ -13,6 +13,7 @@ import mb.coronium.util.eclipseVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.component.SoftwareComponentFactory
+import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.provider.Property
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -46,7 +47,8 @@ class FeaturePlugin @Inject constructor(
 
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
-    project.pluginManager.apply(CoroniumBasePlugin::class)
+    project.pluginManager.apply(FeatureBasePlugin::class)
+    project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to Jar tasks.
     project.pluginManager.apply(MavenizeDslPlugin::class)
 
     val extension = FeatureExtension(project)
@@ -88,11 +90,13 @@ class FeaturePlugin @Inject constructor(
     extension: FeatureExtension,
     featureXmlOutputFile: File
   ): TaskProvider<*> {
+    val featureXmlFile = project.file(featureXmlFilename).toPath()
     return project.tasks.register("finalizeFeatureXml") {
       // Depend on bundle runtime configurations, because they influence how a feature model is built, which in turn influences the final feature XML file.
       dependsOn(project.bundleRuntimeClasspath)
       inputs.files({ project.bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
 
+      inputs.file(featureXmlFile)
       outputs.file(featureXmlOutputFile)
 
       doLast {
@@ -100,7 +104,6 @@ class FeaturePlugin @Inject constructor(
         val feature = run {
           val builder = Feature.Builder()
           // Read feature model from feature.xml if it exists.
-          val featureXmlFile = project.file(featureXmlFilename).toPath()
           if(Files.isRegularFile(featureXmlFile)) {
             builder.readFromFeatureXml(featureXmlFile, extension.log)
           }
@@ -163,11 +166,12 @@ class FeaturePlugin @Inject constructor(
         include(featureXmlFilename)
       }
     }
+    project.tasks.getByName(LifecycleBasePlugin.BUILD_TASK_NAME).dependsOn(featureJarTask)
 
-    // Register the output of the Jar task as an artifact for the bundleRuntimeClasspath.
-    project.featureRuntimeClasspath.outgoing.artifact(featureJarTask)
+    // Register the output of the Jar task as an artifact for the featureRuntimeElements configuration.
+    project.featureRuntimeElements.outgoing.artifact(featureJarTask)
 
-    // Create a new feature component and add our variants to it.
+    // Create a new feature component and add variants from the bundleRuntimeElements to it.
     val featureComponent = @Suppress("UnstableApiUsage") run {
       val featureComponent = softwareComponentFactory.adhoc("feature")
       project.components.add(featureComponent)
@@ -192,7 +196,6 @@ class FeaturePlugin @Inject constructor(
   private fun configureRunTask(project: Project, mavenized: MavenizedEclipseInstallation) {
     // Run Eclipse with direct dependencies.
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
-      group = "coronium"
       description = "Prepares an Eclipse run configuration for running this feature in an Eclipse instance"
 
       val runtimeClasspathConfig = project.bundleRuntimeClasspath
@@ -212,7 +215,7 @@ class FeaturePlugin @Inject constructor(
       }
     }
 
-    project.tasks.register<EclipseRun>("run") {
+    project.tasks.register<EclipseRun>("runEclipse") {
       group = "coronium"
       description = "Runs this feature in an Eclipse instance"
 

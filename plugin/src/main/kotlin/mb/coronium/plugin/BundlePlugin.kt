@@ -53,7 +53,6 @@ open class BundleExtension(private val project: Project) {
 class BundlePlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
-    project.pluginManager.apply(CoroniumBasePlugin::class)
     project.pluginManager.apply(BundleBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
     project.pluginManager.apply(JavaLibraryPlugin::class)
@@ -71,15 +70,15 @@ class BundlePlugin : Plugin<Project> {
     val mavenized = project.mavenizedEclipseInstallation()
 
     configureConfigurations(project)
-    configureBuildPropertiesFile(project)
-    configureFinalizeManifestTask(project, extension)
     configureBndTask(project)
-    configureRunTask(project, mavenized)
+    configureBuildProperties(project)
+    configureJarTask(project, extension)
+    configureRunEclipseTask(project, mavenized)
   }
 
   private fun configureConfigurations(project: Project) {
-    // Register the output of the Jar task as an artifact for the bundleRuntimeClasspath.
-    project.bundleRuntimeClasspath.outgoing.artifact(project.tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME))
+    // Register the output of the Jar task as an artifact for the bundleRuntimeElements configuration.
+    project.bundleRuntimeElements.outgoing.artifact(project.tasks.named<Jar>(JavaPlugin.JAR_TASK_NAME))
 
     // Connection to Java configurations.
     project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME).extendsFrom(
@@ -95,7 +94,7 @@ class BundlePlugin : Plugin<Project> {
       project.bundleTargetPlatformApi
     )
 
-    // Add our variants to the Java component.
+    // Add variants from the bundleRuntimeElements to the Java component.
     @Suppress("UnstableApiUsage") run {
       val javaComponent = project.components.findByName("java") as AdhocComponentWithVariants
       javaComponent.addVariantsFromConfiguration(project.bundleRuntimeElements) {
@@ -121,7 +120,7 @@ class BundlePlugin : Plugin<Project> {
     }
   }
 
-  private fun configureBuildPropertiesFile(project: Project) {
+  private fun configureBuildProperties(project: Project) {
     // Process build properties.
     val properties = run {
       val builder = BuildProperties.Builder()
@@ -162,16 +161,12 @@ class BundlePlugin : Plugin<Project> {
     }
   }
 
-  private fun configureFinalizeManifestTask(project: Project, extension: BundleExtension) {
+  private fun configureJarTask(project: Project, extension: BundleExtension) {
     val manifestFileProperty = extension.manifestFile
     val log = extension.log
 
     // Build a final manifest from the manifest's main attributes and bundle model, and set it in the JAR task.
-    val jarTask = project.tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
-    val finalizeBundleManifestTask = project.tasks.create("finalizeBundleManifest") {
-      group = "coronium"
-      description = "Finalizes the manifest from the bundle manifest, and dependencies provided to Gradle into a single manifest in the resulting JAR file"
-
+    project.tasks.named<Jar>(JavaPlugin.JAR_TASK_NAME).configure {
       // Depend on bundle compile configurations, because they influence how a bundle model is built, which in turn influences the final manifest.
       dependsOn(project.requireBundleReexport)
       inputs.files({ project.requireBundleReexport }) // Closure to defer configuration resolution until task execution.
@@ -180,7 +175,7 @@ class BundlePlugin : Plugin<Project> {
       // Depend on manifest file, because it influences how the manifest is created, which in turn influences the final manifest.
       inputs.files(manifestFileProperty)
 
-      doLast {
+      doFirst {
         manifestFileProperty.finalizeValue()
         val manifestFile = manifestFileProperty.get().toPath()
 
@@ -238,21 +233,20 @@ class BundlePlugin : Plugin<Project> {
           builder.build()
         }
 
+        val jarManifest = this@configure.manifest
         if(manifest != null) {
-          jarTask.manifest.attributes(manifest.mainAttributes.toStringMap())
+          jarManifest.attributes(manifest.mainAttributes.toStringMap())
         }
-        jarTask.manifest.attributes(bundle.writeToManifestAttributes())
+        jarManifest.attributes(bundle.writeToManifestAttributes())
       }
     }
-    jarTask.dependsOn(finalizeBundleManifestTask)
   }
 
-  private fun configureRunTask(project: Project, mavenized: MavenizedEclipseInstallation) {
+  private fun configureRunEclipseTask(project: Project, mavenized: MavenizedEclipseInstallation) {
     val jarTask = project.tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
 
     // Run Eclipse with this plugin and its dependencies.
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
-      group = "coronium"
       description = "Prepares an Eclipse run configuration for running this plugin in an Eclipse instance"
 
       val runtimeClasspathConfig = project.bundleRuntimeClasspath
@@ -276,7 +270,7 @@ class BundlePlugin : Plugin<Project> {
       }
     }
 
-    project.tasks.register<EclipseRun>("run") {
+    project.tasks.register<EclipseRun>("runEclipse") {
       group = "coronium"
       description = "Runs this plugin in an Eclipse instance"
 
