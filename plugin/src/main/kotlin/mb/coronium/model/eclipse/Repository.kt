@@ -1,6 +1,9 @@
 package mb.coronium.model.eclipse
 
+import mb.coronium.mavenize.toEclipse
+import mb.coronium.model.maven.MavenVersion
 import mb.coronium.util.Log
+import org.gradle.api.artifacts.ResolvedConfiguration
 import org.w3c.dom.Node
 import java.io.OutputStream
 import java.io.PrintWriter
@@ -122,6 +125,37 @@ data class Repository(
     }
 
     fun build() = Repository(dependencies, categories)
+  }
+
+  fun mergeWith(gradleFeatureDependencies: ResolvedConfiguration): Repository {
+    val mergedDependencies: MutableCollection<Dependency> = mutableListOf()
+
+    // Add all Gradle dependencies or merge its version with an existing feature dependency
+    gradleFeatureDependencies.resolvedArtifacts.forEach { resolvedArtifact ->
+      val module = resolvedArtifact.moduleVersion.id
+
+      val existingDependency = dependencies.find { it.coordinates.id == module.name }
+      val dependencyVersion = MavenVersion.parse(module.version).toEclipse()
+
+      if(existingDependency == null) {
+        val coordinates = Dependency.Coordinates(module.name, dependencyVersion)
+        val mergedDependency = Dependency(coordinates, null)
+        mergedDependencies.add(mergedDependency)
+      } else {
+        val coordinates = Dependency.Coordinates(existingDependency.coordinates.id, dependencyVersion)
+        val mergedDependency = Dependency(coordinates, existingDependency.categoryName)
+        mergedDependencies.add(mergedDependency)
+      }
+    }
+
+    // Add all feature dependencies that are not also Gradle dependencies
+    dependencies.forEach { featureDependency ->
+      if(!gradleFeatureDependencies.resolvedArtifacts.any { it.name == featureDependency.coordinates.id }) {
+        mergedDependencies.add(featureDependency)
+      }
+    }
+
+    return Repository(mergedDependencies, categories)
   }
 
   fun writeToRepositoryXml(outputStream: OutputStream) {

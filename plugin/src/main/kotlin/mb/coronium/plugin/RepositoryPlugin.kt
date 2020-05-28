@@ -1,193 +1,162 @@
 package mb.coronium.plugin
 
-import mb.coronium.mavenize.toEclipse
-import mb.coronium.model.eclipse.*
-import mb.coronium.model.maven.MavenVersion
-import mb.coronium.plugin.internal.*
+import mb.coronium.mavenize.MavenizedEclipseInstallation
+import mb.coronium.model.eclipse.Bundle
+import mb.coronium.model.eclipse.BundleVersion
+import mb.coronium.model.eclipse.BundleVersionRange
+import mb.coronium.model.eclipse.Feature
+import mb.coronium.model.eclipse.Repository
+import mb.coronium.plugin.internal.MavenizePlugin
+import mb.coronium.plugin.internal.mavenizedEclipseInstallation
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
-import mb.coronium.util.*
+import mb.coronium.util.GradleLog
+import mb.coronium.util.TempDir
+import mb.coronium.util.packJar
+import mb.coronium.util.readManifestFromFile
+import mb.coronium.util.unpack
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.*
-import org.gradle.api.plugins.BasePlugin
+import org.gradle.api.component.SoftwareComponentFactory
+import org.gradle.api.plugins.JavaBasePlugin
+import org.gradle.api.provider.Property
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.Sync
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.*
+import org.gradle.language.base.plugins.LifecycleBasePlugin
+import java.io.File
 import java.nio.file.Files
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
 @Suppress("unused")
 open class RepositoryExtension(private val project: Project) {
-  var repositoryDescriptionFile: String = "category.xml"
-  var qualifierReplacement: String = SimpleDateFormat("yyyyMMddHHmm").format(Calendar.getInstance().time)
-  var createPublication: Boolean = true
+  val repositoryDescriptionFile: Property<String> = project.objects.property()
+  val qualifierReplacement: Property<String> = project.objects.property()
+  val createPublication: Property<Boolean> = project.objects.property()
 
-
-  private fun ModuleDependency.configureArtifact() {
-    this.artifact {
-      this.name = this.name
-      this.type = "feature"
-      this.extension = "jar"
-    }
-  }
-
-  private fun createDependency(group: String, name: String, version: String): Dependency {
-    val dependency = project.dependencies.create(group, name, version, Dependency.DEFAULT_CONFIGURATION)
-    dependency.configureArtifact()
-    return dependency
-  }
-
-  private fun createDependency(projectPath: String): Dependency {
-    val dependency = project.dependencies.project(projectPath, Dependency.DEFAULT_CONFIGURATION)
-    dependency.configureArtifact()
-    return dependency
+  init {
+    repositoryDescriptionFile.convention("category.xml")
+    qualifierReplacement.convention(SimpleDateFormat("yyyyMMddHHmm").format(Calendar.getInstance().time))
+    createPublication.convention(true)
   }
 
 
-  fun requireFeature(group: String, name: String, version: String): Dependency {
-    val dependency = createDependency(group, name, version)
-    requireFeature(dependency)
-    return dependency
-  }
-
-  fun requireFeature(projectPath: String): Dependency {
-    val dependency = createDependency(projectPath)
-    requireFeature(dependency)
-    return dependency
-  }
-
-  private fun requireFeature(dependency: Dependency) {
-    project.bundleRuntimeClasspath.dependencies.add(dependency) // TODO: fix wrong configuration
-  }
-
-
-//  private val featureConfig = project.featureConfig
-//  internal val featureDependencyToCategoryName = mutableMapOf<Dependency, String>()
-//
-//  fun feature(group: String, name: String, version: String, categoryName: String? = null): Dependency {
-//    val dependency = project.dependencies.create(group, name, version, FeatureBasePlugin.feature)
-//    featureConfig.dependencies.add(dependency)
-//    if(categoryName != null) {
-//      featureDependencyToCategoryName[dependency] = categoryName
-//    }
-//    return dependency
-//  }
-//
-//  fun featureProject(path: String, categoryName: String? = null): Dependency {
-//    val dependency = project.dependencies.project(path, FeatureBasePlugin.feature)
-//    featureConfig.dependencies.add(dependency)
-//    if(categoryName != null) {
-//      featureDependencyToCategoryName[dependency] = categoryName
-//    }
-//    return dependency
-//  }
+  internal val log = GradleLog(project.logger)
 }
 
 @Suppress("unused")
-class RepositoryPlugin : Plugin<Project> {
+class RepositoryPlugin @Inject constructor(
+  private val softwareComponentFactory: SoftwareComponentFactory
+) : Plugin<Project> {
   override fun apply(project: Project) {
-    project.pluginManager.apply(BasePlugin::class)
+    project.pluginManager.apply(LifecycleBasePlugin::class)
+    project.pluginManager.apply(RepositoryBasePlugin::class)
+    project.pluginManager.apply(FeatureBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
-    project.extensions.add("repository", RepositoryExtension(project))
-    project.gradle.projectsEvaluated { configure(project) }
+    project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to archive tasks.
+
+    val extension = RepositoryExtension(project)
+    project.extensions.add("repository", extension)
+
+    configure(project, extension)
   }
 
-  private fun configure(project: Project) {
-    val log = GradleLog(project.logger)
-    val extension = project.extensions.getByType<RepositoryExtension>()
-
-    project.pluginManager.apply(BasePlugin::class)
-
+  private fun configure(project: Project, extension: RepositoryExtension) {
+    // HACK: eagerly load Mavenize Plugin, as it adds a repository that must be available in the configuration phase.
+    // This currently disables the ability for users to customize the Eclipse target platform.
     project.pluginManager.apply(MavenizePlugin::class)
     val mavenized = project.mavenizedEclipseInstallation()
 
-    val bundleRuntimeConfig = project.bundleRuntimeClasspath // TODO: fix wrong configuration
+    val repositorySource = project.buildDir.resolve("repositorySource")
 
-    // Build repository model from repository description file (category.xml or site.xml) and Gradle project.
-    val repository = run {
-      val builder = Repository.Builder()
-      val repositoryDescriptionFile = project.file(extension.repositoryDescriptionFile).toPath()
-      if(Files.isRegularFile(repositoryDescriptionFile)) {
-        builder.readFromRepositoryXml(repositoryDescriptionFile, log)
-      }
-      // Add dependencies from Gradle project.
-      for(dependency in bundleRuntimeConfig.allDependencies) {
-        if(dependency.version == null) {
-          error("Cannot convert dependency $dependency to a feature dependency, as it it has no version")
-        }
-        val version = MavenVersion.parse(dependency.version!!).toEclipse()
-        //val categoryName = extension.featureDependencyToCategoryName[dependency]
-        val categoryName = null // TODO: restore category
-        builder.dependencies.add(Repository.Dependency(Repository.Dependency.Coordinates(dependency.name, version), categoryName))
-      }
-      builder.build()
-    }
+    val copiedBundlesDir = repositorySource.resolve("bundles")
+    val copyBundlesTask = configureCopyBundlesTask(project, copiedBundlesDir)
 
-    // Update Gradle project model from feature model.
-    run {
-      // Create converter.
-      val groupId = project.group.toString()
-      val converter = mavenized.createConverter(groupId)
-      // Add dependencies to bundle configuration when it is empty. Not using default dependencies due to https://github.com/gradle/gradle/issues/7943.
-      if(bundleRuntimeConfig.allDependencies.isEmpty()) {
-        for(featureDependency in repository.dependencies) {
-          val coords = converter.convert(featureDependency.coordinates)
-          val isMavenizedBundle = mavenized.isMavenizedBundle(coords.groupId, coords.id)
-          // Skip dependencies to mavenized bundles, as they are provided and should not be included in features.
-          if(!isMavenizedBundle) {
-            val gradleDependency = coords.toGradleDependency(project, bundleRuntimeConfig.name)
-            bundleRuntimeConfig.dependencies.add(gradleDependency)
-          }
-        }
-      }
-    }
+    val copiedFeaturesDir = repositorySource.resolve("features")
+    val copyFeaturesTask = configureCopyFeaturesTask(project, copiedFeaturesDir)
 
-    // Unpack dependency features.
-    val unpackFeaturesDir = project.buildDir.resolve("unpackFeatures")
-    unpackFeaturesDir.mkdirs()
-    val unpackFeaturesTask = project.tasks.create("unpackFeatures") {
-      dependsOn(bundleRuntimeConfig)
-      inputs.files(bundleRuntimeConfig)
-      outputs.dir(unpackFeaturesDir)
+    val replacedQualifierDir = project.buildDir.resolve("replacedQualifier")
+    val replaceQualifierTask = configureReplaceQualifierTask(project, extension, copyBundlesTask, copyFeaturesTask, copiedBundlesDir, copiedFeaturesDir, replacedQualifierDir)
+
+    val repositoryXmlFile = project.buildDir.resolve("repositoryXml/repository.xml")
+    val createRepositoryXmlTask = configureCreateRepositoryXmlTask(project, extension, repositoryXmlFile)
+
+    val repositoryDir = project.buildDir.resolve("repository")
+    val createRepositoryTask = configureCreateRepositoryTask(project, extension, mavenized, replaceQualifierTask, createRepositoryXmlTask, replacedQualifierDir, repositoryXmlFile, repositoryDir)
+
+    configureArchiveRepositoryTask(project, extension, createRepositoryTask, repositoryDir)
+    configureRunTask(project, mavenized)
+  }
+
+  private fun configureCopyBundlesTask(project: Project, copiedBundlesDir: File): TaskProvider<*> {
+    val bundleRuntimeClasspath = project.bundleRuntimeClasspath
+    return project.tasks.register<Sync>("copyBundles") {
+      dependsOn(bundleRuntimeClasspath)
+      inputs.files({ bundleRuntimeClasspath })
+
+      from({ bundleRuntimeClasspath })
+      into(copiedBundlesDir)
+
       doFirst {
-        unpackFeaturesDir.deleteRecursively()
-        unpackFeaturesDir.mkdirs()
-      }
-      doLast {
-        project.copy {
-          bundleRuntimeConfig.forEach {
-            from(project.zipTree(it))
-          }
-          into(unpackFeaturesDir)
-        }
+        copiedBundlesDir.mkdirs()
       }
     }
+  }
 
+  private fun configureCopyFeaturesTask(project: Project, copiedFeaturesDir: File): TaskProvider<*> {
+    val featureRuntimeClasspath = project.featureRuntimeClasspath
+    return project.tasks.register<Sync>("copyFeatures") {
+      dependsOn(featureRuntimeClasspath)
+      inputs.files({ featureRuntimeClasspath })
+
+      from({ featureRuntimeClasspath })
+      into(copiedFeaturesDir)
+
+      doFirst {
+        copiedFeaturesDir.mkdirs()
+      }
+    }
+  }
+
+  private fun configureReplaceQualifierTask(
+    project: Project,
+    extension: RepositoryExtension,
+    copyBundlesTask: TaskProvider<*>,
+    copyFeaturesTask: TaskProvider<*>,
+    copiedBundlesDir: File,
+    copiedFeaturesDir: File,
+    replacedQualifierDir: File
+  ): TaskProvider<*> {
     // Replace '.qualifier' with concrete qualifiers in all features and plugins. Have to do the unpacking/packing of
     // JAR files manually, as we cannot create Gradle tasks during execution.
-    val featuresInUnpackFeaturesDir = unpackFeaturesDir.resolve("features").toPath()
-    val pluginsInUnpackFeaturesDir = unpackFeaturesDir.resolve("plugins").toPath()
-    val concreteQualifier = extension.qualifierReplacement
-    val replaceQualifierDir = project.buildDir.resolve("replaceQualifier")
-    val featuresInReplaceQualifierDir = replaceQualifierDir.resolve("features").toPath()
-    val pluginsInReplaceQualifierDir = replaceQualifierDir.resolve("plugins").toPath()
-    val replaceQualifierTask = project.tasks.create("replaceQualifier") {
-      dependsOn(unpackFeaturesTask)
-      inputs.dir(unpackFeaturesDir)
-      outputs.dir(replaceQualifierDir)
+    val featuresInReplaceQualifierDir = replacedQualifierDir.resolve("features").toPath()
+    val pluginsInReplaceQualifierDir = replacedQualifierDir.resolve("plugins").toPath()
+    val log = extension.log
+    return project.tasks.register("replaceQualifier") {
+      dependsOn(copyBundlesTask, copyFeaturesTask)
+
+      inputs.dir(copiedBundlesDir)
+      inputs.dir(copiedFeaturesDir)
+
+      outputs.dir(replacedQualifierDir)
+
       doFirst {
-        replaceQualifierDir.deleteRecursively()
-        Files.createDirectories(featuresInUnpackFeaturesDir)
-        Files.createDirectories(pluginsInUnpackFeaturesDir)
+        // Delete replaced qualifier dir to ensure that removed bundles/features are not included.
+        replacedQualifierDir.deleteRecursively()
         Files.createDirectories(featuresInReplaceQualifierDir)
         Files.createDirectories(pluginsInReplaceQualifierDir)
       }
+
       doLast {
+        extension.qualifierReplacement.finalizeValue()
+        val concreteQualifier = extension.qualifierReplacement.get()
         TempDir("replaceQualifier").use { tempDir ->
-          Files.list(featuresInUnpackFeaturesDir).use { featureJarFiles ->
+          Files.list(copiedFeaturesDir.toPath()).use { featureJarFiles ->
             for(featureJarFile in featureJarFiles) {
               val fileName = featureJarFile.fileName
               val unpackTempDir = tempDir.createTempDir(fileName.toString())
@@ -221,7 +190,7 @@ class RepositoryPlugin : Plugin<Project> {
               packJar(unpackTempDir, targetJarFile)
             }
           }
-          Files.list(pluginsInUnpackFeaturesDir).use { pluginJarFiles ->
+          Files.list(copiedBundlesDir.toPath()).use { pluginJarFiles ->
             for(pluginJarFile in pluginJarFiles) {
               val fileName = pluginJarFile.fileName
               val unpackTempDir = tempDir.createTempDir(fileName.toString())
@@ -266,38 +235,60 @@ class RepositoryPlugin : Plugin<Project> {
         }
       }
     }
+  }
 
-    // Build repository.xml from repository model.
-    val repositoryXmlFile = project.buildDir.resolve("repositoryXml/repository.xml").toPath()
-    val createRepositoryXmlTask = project.tasks.create("createRepositoryXml") {
-      // Depend on (files from) feature configuration because dependencies in this configuration affect the repository model.
-      dependsOn(bundleRuntimeConfig)
-      inputs.files(bundleRuntimeConfig)
+  private fun configureCreateRepositoryXmlTask(
+    project: Project,
+    extension: RepositoryExtension,
+    repositoryXmlFile: File
+  ): TaskProvider<*> {
+    val featureRuntimeClasspath = project.featureRuntimeClasspath
+    return project.tasks.register("createRepositoryXml") {
+      dependsOn(featureRuntimeClasspath)
+      inputs.files({ featureRuntimeClasspath })
       outputs.file(repositoryXmlFile)
       doLast {
-        Files.createDirectories(repositoryXmlFile.parent)
-        Files.newOutputStream(repositoryXmlFile).buffered().use { outputStream ->
+        // Build repository model from repository description file (category.xml or site.xml) and Gradle project.
+        val repository = run {
+          val builder = Repository.Builder()
+          val repositoryDescriptionFile = project.file(extension.repositoryDescriptionFile).toPath()
+          if(Files.isRegularFile(repositoryDescriptionFile)) {
+            builder.readFromRepositoryXml(repositoryDescriptionFile, extension.log)
+          }
+          val repository = builder.build()
+          repository.mergeWith(featureRuntimeClasspath.resolvedConfiguration)
+        }
+        // Write repository model to file.
+        repositoryXmlFile.parentFile.mkdirs()
+        repositoryXmlFile.outputStream().buffered().use { outputStream ->
           repository.writeToRepositoryXml(outputStream)
           outputStream.flush()
         }
       }
     }
+  }
 
-    // Build the repository.
-    val repositoryDir = project.buildDir.resolve("repository")
+  private fun configureCreateRepositoryTask(
+    project: Project,
+    extension: RepositoryExtension,
+    mavenized: MavenizedEclipseInstallation,
+    replaceQualifierTask: TaskProvider<*>,
+    createRepositoryXmlTask: TaskProvider<*>,
+    replacedQualifierDir: File,
+    repositoryXmlFile: File,
+    repositoryDir: File
+  ): TaskProvider<*> {
     val eclipseLauncherPath = mavenized.equinoxLauncherPath()?.toString() ?: error("Could not find Eclipse launcher")
-    val createRepositoryTask = project.tasks.create("createRepository") {
+    return project.tasks.register("createRepository") {
       dependsOn(replaceQualifierTask)
       dependsOn(createRepositoryXmlTask)
-      inputs.dir(replaceQualifierDir)
+      inputs.dir(replacedQualifierDir)
       inputs.file(eclipseLauncherPath)
       inputs.file(repositoryXmlFile)
       outputs.dir(repositoryDir)
-      doFirst {
+      doLast {
         repositoryDir.deleteRecursively()
         repositoryDir.mkdirs()
-      }
-      doLast {
         project.javaexec {
           main = "-jar"
           args = mutableListOf(
@@ -305,7 +296,7 @@ class RepositoryPlugin : Plugin<Project> {
             "-application", "org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher",
             "-metadataRepository", "file:/$repositoryDir",
             "-artifactRepository", "file:/$repositoryDir",
-            "-source", "$replaceQualifierDir",
+            "-source", "$replacedQualifierDir",
             "-configs", "ANY",
             "-compress",
             "-publishArtifacts"
@@ -324,78 +315,74 @@ class RepositoryPlugin : Plugin<Project> {
         }
       }
     }
+  }
 
-    // Zip the repository.
-    val zipRepositoryTask = project.tasks.create<Zip>("zipRepository") {
+  private fun configureArchiveRepositoryTask(
+    project: Project,
+    extension: RepositoryExtension,
+    createRepositoryTask: TaskProvider<*>,
+    repositoryDir: File
+  ) {
+    val archiveRepositoryTask = project.tasks.register<Zip>("archiveRepository") {
       dependsOn(createRepositoryTask)
       from(repositoryDir)
     }
-    project.tasks.getByName(BasePlugin.ASSEMBLE_TASK_NAME).dependsOn(zipRepositoryTask)
+    project.tasks.getByName(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).dependsOn(archiveRepositoryTask)
 
-    // Add the result of the ZIP task as an artifact.
-    val artifact: PublishArtifact = project.artifacts.add(Dependency.DEFAULT_CONFIGURATION, zipRepositoryTask) {
-      this.name = project.name
-      this.extension = "zip"
-      this.type = "repository"
-      this.builtBy(zipRepositoryTask)
+    // Register the output of the archive task as an artifact for the repositoryRuntimeElements configuration.
+    project.repositoryRuntimeElements.outgoing.artifact(archiveRepositoryTask)
+
+    // Create a new repository component and add variants from the repositoryRuntimeElements to it.
+    val repositoryComponent = @Suppress("UnstableApiUsage") run {
+      val featureComponent = softwareComponentFactory.adhoc("repository")
+      project.components.add(featureComponent)
+      featureComponent.addVariantsFromConfiguration(project.repositoryRuntimeElements) {
+        mapToMavenScope("runtime")
+      }
+      featureComponent
     }
 
-    if(extension.createPublication) {
-      // Add artifact as main publication.
-      project.pluginManager.withPlugin("maven-publish") {
-        project.extensions.configure<PublishingExtension> {
-          publications.create<MavenPublication>("Repository") {
-            artifact(artifact) {
-              this.extension = "zip"
-            }
-            pom {
-              packaging = "zip"
-              withXml {
-                val root = asElement()
-                val doc = root.ownerDocument
-                val dependenciesNode = doc.createElement("dependencies")
-                for(dependency in bundleRuntimeConfig.dependencies) {
-                  val dependencyNode = doc.createElement("dependency")
-
-                  val groupIdNode = doc.createElement("groupId")
-                  groupIdNode.appendChild(doc.createTextNode(dependency.group))
-                  dependencyNode.appendChild(groupIdNode)
-
-                  val artifactIdNode = doc.createElement("artifactId")
-                  artifactIdNode.appendChild(doc.createTextNode(dependency.name))
-                  dependencyNode.appendChild(artifactIdNode)
-
-                  val versionNode = doc.createElement("version")
-                  versionNode.appendChild(doc.createTextNode(dependency.version))
-                  dependencyNode.appendChild(versionNode)
-
-                  val scopeNode = doc.createElement("scope")
-                  scopeNode.appendChild(doc.createTextNode("provided"))
-                  dependencyNode.appendChild(scopeNode)
-
-                  dependenciesNode.appendChild(dependencyNode)
-                }
-                root.appendChild(dependenciesNode)
-              }
+    // Create a publication from the repository component.
+    project.afterEvaluate {
+      extension.createPublication.finalizeValue()
+      if(extension.createPublication.get()) {
+        project.pluginManager.withPlugin("maven-publish") {
+          project.extensions.configure<PublishingExtension> {
+            publications.create<MavenPublication>("Repository") {
+              from(repositoryComponent)
             }
           }
         }
       }
     }
+  }
 
-    // Run Eclipse with unpacked plugins.
+  private fun configureRunTask(project: Project, mavenized: MavenizedEclipseInstallation) {
+    // Run Eclipse with direct dependencies.
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
-      dependsOn(unpackFeaturesTask)
+      description = "Prepares an Eclipse run configuration for running the bundles of this repository in an Eclipse instance"
+
+      val runtimeClasspathConfig = project.bundleRuntimeClasspath
+
+      // Depend on the bundle runtime configurations.
+      dependsOn(runtimeClasspathConfig)
+      inputs.files({ runtimeClasspathConfig }) // Closure to defer configuration resolution until task execution.
+
       setFromMavenizedEclipseInstallation(mavenized)
+
       doFirst {
-        Files.list(pluginsInUnpackFeaturesDir).use { pluginFiles ->
-          for(file in pluginFiles) {
-            addBundle(file)
-          }
+        // At task execution time, before the run configuration is prepared, add all runtime dependencies as bundles.
+        // This is done at task execution time because it resolves the configurations.
+        for(file in runtimeClasspathConfig) {
+          addBundle(file)
         }
       }
     }
-    project.tasks.create<EclipseRun>("run") {
+
+    project.tasks.register<EclipseRun>("runEclipse") {
+      group = "coronium"
+      description = "Runs the bundles of this repository in an Eclipse instance"
+
       configure(prepareEclipseRunConfigurationTask, mavenized, project.mavenizeExtension())
     }
   }

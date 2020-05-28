@@ -48,8 +48,8 @@ class FeaturePlugin @Inject constructor(
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
     project.pluginManager.apply(FeatureBasePlugin::class)
-    project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to Jar tasks.
     project.pluginManager.apply(MavenizeDslPlugin::class)
+    project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to archive tasks.
 
     val extension = FeatureExtension(project)
     project.extensions.add("feature", extension)
@@ -182,11 +182,14 @@ class FeaturePlugin @Inject constructor(
     }
 
     // Create a publication from the feature component.
-    if(extension.createPublication.get()) {
-      project.pluginManager.withPlugin("maven-publish") {
-        project.extensions.configure<PublishingExtension> {
-          publications.create<MavenPublication>("Feature") {
-            from(featureComponent)
+    project.afterEvaluate {
+      extension.createPublication.finalizeValue()
+      if(extension.createPublication.get()) {
+        project.pluginManager.withPlugin("maven-publish") {
+          project.extensions.configure<PublishingExtension> {
+            publications.create<MavenPublication>("Feature") {
+              from(featureComponent)
+            }
           }
         }
       }
@@ -196,7 +199,7 @@ class FeaturePlugin @Inject constructor(
   private fun configureRunTask(project: Project, mavenized: MavenizedEclipseInstallation) {
     // Run Eclipse with direct dependencies.
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
-      description = "Prepares an Eclipse run configuration for running this feature in an Eclipse instance"
+      description = "Prepares an Eclipse run configuration for running the bundles of this feature in an Eclipse instance"
 
       val runtimeClasspathConfig = project.bundleRuntimeClasspath
 
@@ -217,7 +220,7 @@ class FeaturePlugin @Inject constructor(
 
     project.tasks.register<EclipseRun>("runEclipse") {
       group = "coronium"
-      description = "Runs this feature in an Eclipse instance"
+      description = "Runs this bundles of this feature in an Eclipse instance"
 
       configure(prepareEclipseRunConfigurationTask, mavenized, project.mavenizeExtension())
     }
