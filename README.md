@@ -8,9 +8,11 @@ Coronium is a Gradle plugin for building, developing, and publishing Eclipse plu
 
 * __Eclipse plugins__: currently, Coronium supports building, developing (i.e, running an Eclipse instance with your plugin and its dependencies included), and publishing of Eclipse plugins to Maven repositories with Gradle metadata.
 
-### Unsupported
+* __Eclipse features__: composite Eclipse features by creating dependencies to plugins and other features.
 
-* __Eclipse features and repositories__: not supported at the moment, but we want to support this in the short term.
+* __Eclipse repositories__: build Eclipse repositories from features.
+
+### Unsupported
 
 * __P2 repositories__: not supported, and are unlikely to be supported on the short term, as Gradle does not support custom repository implementations.
 Plugins can only be retrieved from Maven repositories that support Gradle metadata.
@@ -18,17 +20,15 @@ Consequently, Gradle metadata needs to be enabled for this to work, and the Mave
 
 * __Export/Import-Package__: not supported, un unlikely to ever be supported, as this is not really idiomatic in Gradle.
 
-## Getting started
-
-### Requirements
+## Requirements
 
 Gradle 5.3 or higher is required.
-The following code snippets assume you are using Gradle with Kotlin, but should be translatable to Groovy as well.
+The code snippets in this README assume you are using Gradle with Kotlin, but should be translatable to Groovy as well.
 
-### Applying the plugin
+## Prerequisites
 
 The Coronium plugin is not yet published to the Gradle plugins repository.
-Therefore, to enable the plugin, add our repository to your settings.gradle(.kts) file:
+Therefore, to enable downloading the plugin, add our repository to your settings.gradle(.kts) file:
 
 ```kotlin
 pluginManagement {
@@ -41,8 +41,14 @@ pluginManagement {
 If you are on Gradle 5.3-5.6, Gradle metadata needs to be enabled. Add the following line to your settings.gradle(.kts) file:
 
 ```kotlin
-enableFeaturePreview("GRADLE_METADATA")
+if(org.gradle.util.VersionNumber.parse(gradle.gradleVersion).major < 6) {
+  enableFeaturePreview("GRADLE_METADATA")
+}
 ```
+
+## Building Eclipse plugins
+
+### Applying the plugin
 
 Apply the bundle plugin to a project (a build.gradle(.kts) file) as follows:
 
@@ -189,5 +195,56 @@ tasks {
       )
     }
   }
+}
+```
+
+## Building Eclipse features
+
+Apply the feature plugin to a project (a build.gradle(.kts) file) as follows:
+
+```kotlin
+plugins {
+  id("org.metaborg.coronium.feature") version("0.3.0")
+}
+```
+
+Include bundles and/or other in the feature by making dependencies:
+
+```kotlin
+dependencies {
+  bundle(project(":tiger.eclipse"))
+
+  featureInclude(project(":spoofax.eclipse.feature"))
+}
+```
+
+By default, dependencies are transitive. You can use the regular exclude mechanisms in Gradle to exclude transitive dependencies. For example:
+
+```kotlin
+dependencies {
+  featureInclude(project(":spoofax.eclipse.feature"))
+  bundle(project(":tiger.eclipse")) {
+    // Including a bundle into a feature also includes all reexported bundles. In this case, we want to prevent this
+    // because 'complex.spoofax.eclipse' is included into the 'complex.spoofax.eclipse.feature' feature.
+    exclude("org.metaborg", "spoofax.eclipse")
+  }
+}
+```
+
+## Building Eclipse repositories
+
+Apply the repository plugin to a project (a build.gradle(.kts) file) as follows:
+
+```kotlin
+plugins {
+  id("org.metaborg.coronium.repository") version("0.3.0")
+}
+```
+
+Include features into the repository by making dependencies:
+
+```kotlin
+dependencies {
+  feature(project(":tiger.eclipse.feature"))
 }
 ```
