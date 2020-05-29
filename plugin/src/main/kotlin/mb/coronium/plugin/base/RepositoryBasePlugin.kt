@@ -11,26 +11,26 @@ open class RepositoryBasePlugin @Inject constructor(
   private val objectFactory: ObjectFactory
 ) : Plugin<Project> {
   companion object {
-    const val repositoryRuntimeUsage = "repository-runtime"
-    const val repositoryRuntimeElements = "repositoryRuntimeElements"
+    const val repositoryUsage = "repository"
+    const val repositoryArchive = "repositoryRuntimeElements"
   }
 
   override fun apply(project: Project) {
     // Attributes
-    val repositoryRuntimeUsage = objectFactory.named(Usage::class.java, repositoryRuntimeUsage)
+    val repositoryUsage = objectFactory.named(Usage::class.java, repositoryUsage)
 
     // Consumable configurations
-    project.configurations.create(repositoryRuntimeElements) {
-      description = "Repositories required when executing in the target platform"
+    project.configurations.create(repositoryArchive) {
+      description = "Repository archive"
       isCanBeConsumed = true
       isCanBeResolved = false
       isVisible = false
-      attributes.attribute(Usage.USAGE_ATTRIBUTE, repositoryRuntimeUsage)
+      attributes.attribute(Usage.USAGE_ATTRIBUTE, repositoryUsage)
     }
   }
 }
 
-internal val Project.repositoryRuntimeUsage get(): Usage = this.objects.named(Usage::class.java, RepositoryBasePlugin.repositoryRuntimeUsage)
+internal val Project.repositoryUsage get(): Usage = this.objects.named(Usage::class.java, RepositoryBasePlugin.repositoryUsage)
 
-internal val Project.repositoryRuntimeElements get(): Configuration = this.configurations.getByName(RepositoryBasePlugin.repositoryRuntimeElements)
+internal val Project.repositoryArchive get(): Configuration = this.configurations.getByName(RepositoryBasePlugin.repositoryArchive)
 

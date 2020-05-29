@@ -14,11 +14,6 @@ metaborg {
 
 gradlePlugin {
   plugins {
-    create("coronium-base") {
-      id = "org.metaborg.coronium.base"
-      implementationClass = "mb.coronium.plugin.base.CoroniumBasePlugin"
-    }
-
     create("coronium-bundle-base") {
       id = "org.metaborg.coronium.bundle.base"
       implementationClass = "mb.coronium.plugin.base.BundleBasePlugin"
@@ -72,5 +67,7 @@ tasks {
     }
     // Enable zip64 to support ZIP files with more than 2^16 entries, which we need.
     isZip64 = true
+    // Allow duplicates, as some dependencies have duplicate files/classes.
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
   }
 }

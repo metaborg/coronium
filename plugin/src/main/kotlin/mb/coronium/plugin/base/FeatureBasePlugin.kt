@@ -5,32 +5,31 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.attributes.Usage
 import org.gradle.api.model.ObjectFactory
-import org.gradle.kotlin.dsl.*
 import javax.inject.Inject
 
 open class FeatureBasePlugin @Inject constructor(
   private val objectFactory: ObjectFactory
 ) : Plugin<Project> {
   companion object {
-    const val featureRuntimeUsage = "feature-runtime"
-    const val featureRuntimeElements = "featureRuntimeElements"
+    const val featureUsage = "feature"
+    const val featureElements = "featureElements"
   }
 
   override fun apply(project: Project) {
     // Attributes
-    val featureRuntimeUsage = objectFactory.named(Usage::class.java, featureRuntimeUsage)
+    val featureUsage = objectFactory.named(Usage::class.java, featureUsage)
 
     // Consumable configurations
-    project.configurations.create(featureRuntimeElements) {
-      description = "Features required when executing in the target platform"
+    project.configurations.create(featureElements) {
+      description = "Features elements"
       isCanBeConsumed = true
       isCanBeResolved = false
       isVisible = false
-      attributes.attribute(Usage.USAGE_ATTRIBUTE, featureRuntimeUsage)
+      attributes.attribute(Usage.USAGE_ATTRIBUTE, featureUsage)
     }
   }
 }
 
-internal val Project.featureRuntimeUsage get(): Usage = this.objects.named(Usage::class.java, FeatureBasePlugin.featureRuntimeUsage)
+internal val Project.featureUsage get(): Usage = this.objects.named(Usage::class.java, FeatureBasePlugin.featureUsage)
 
-internal val Project.featureRuntimeElements get(): Configuration = this.configurations.getByName(FeatureBasePlugin.featureRuntimeElements)
+internal val Project.featureElements get(): Configuration = this.configurations.getByName(FeatureBasePlugin.featureElements)

@@ -6,4 +6,6 @@ pluginManagement {
   }
 }
 
-enableFeaturePreview("GRADLE_METADATA")
+if(org.gradle.util.VersionNumber.parse(gradle.gradleVersion).major < 6) {
+  enableFeaturePreview("GRADLE_METADATA")
+}

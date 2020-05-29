@@ -10,8 +10,8 @@ import mb.coronium.model.eclipse.DependencyResolution
 import mb.coronium.model.eclipse.DependencyVisibility
 import mb.coronium.model.maven.MavenVersionOrRange
 import mb.coronium.plugin.base.BundleBasePlugin
+import mb.coronium.plugin.base.bundleElements
 import mb.coronium.plugin.base.bundleRuntimeClasspath
-import mb.coronium.plugin.base.bundleRuntimeElements
 import mb.coronium.plugin.internal.MavenizeDslPlugin
 import mb.coronium.plugin.internal.MavenizePlugin
 import mb.coronium.plugin.internal.mavenizeExtension
@@ -72,9 +72,9 @@ class BundlePlugin : Plugin<Project> {
 
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
-    project.pluginManager.apply(BundleBasePlugin::class)
-    project.pluginManager.apply(MavenizeDslPlugin::class)
     project.pluginManager.apply(JavaLibraryPlugin::class)
+    project.pluginManager.apply(MavenizeDslPlugin::class)
+    project.pluginManager.apply(BundleBasePlugin::class)
 
     val extension = BundleExtension(project)
     project.extensions.add("bundle", extension)
@@ -160,15 +160,15 @@ class BundlePlugin : Plugin<Project> {
       extendsFrom(bundleImplementation, bundleTargetPlatformImplementation)
     }
 
-    // Extend bundleRuntimeElements, such that the dependencies to bundles are exported when deployed, which
+    // Extend bundleElements, such that the dependencies to bundles are exported when deployed, which
     // can then be consumed by other projects.
-    project.bundleRuntimeElements.extendsFrom(bundleApi, bundleImplementation)
+    project.bundleElements.extendsFrom(bundleApi, bundleImplementation)
 
-    // Extend bundleRuntimeClasspath, such that bundles are loaded when running Eclipse.
+    // Extend bundleRuntimeClasspath, such that dependent-to bundles are loaded when running Eclipse.
     project.bundleRuntimeClasspath.extendsFrom(bundleApi, bundleImplementation)
 
     // Register the output of the Jar task as an artifact for the bundleRuntimeElements configuration.
-    project.bundleRuntimeElements.outgoing.artifact(project.tasks.named<Jar>(JavaPlugin.JAR_TASK_NAME))
+    project.bundleElements.outgoing.artifact(project.tasks.named<Jar>(JavaPlugin.JAR_TASK_NAME))
 
     // Connection to Java configurations.
     project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME).extendsFrom(
@@ -184,10 +184,10 @@ class BundlePlugin : Plugin<Project> {
       bundleTargetPlatformApi
     )
 
-    // Add variants from the bundleRuntimeElements to the Java component.
+    // Add variants from bundleElements to the Java component.
     @Suppress("UnstableApiUsage") run {
       val javaComponent = project.components.findByName("java") as AdhocComponentWithVariants
-      javaComponent.addVariantsFromConfiguration(project.bundleRuntimeElements) {
+      javaComponent.addVariantsFromConfiguration(project.bundleElements) {
         mapToMavenScope("runtime")
       }
     }
@@ -339,13 +339,13 @@ class BundlePlugin : Plugin<Project> {
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
       description = "Prepares an Eclipse run configuration for running this plugin in an Eclipse instance"
 
-      val runtimeClasspathConfig = project.bundleRuntimeClasspath
+      val bundleRuntimeClasspath = project.bundleRuntimeClasspath
 
       // Depend on the built bundle JAR.
       dependsOn(jarTask)
       // Depend on the bundle runtime configurations.
-      dependsOn(runtimeClasspathConfig)
-      inputs.files({ runtimeClasspathConfig }) // Closure to defer configuration resolution until task execution.
+      dependsOn(bundleRuntimeClasspath)
+      inputs.files({ bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
 
       // Set run configuration from Mavenized Eclipse installation.
       setFromMavenizedEclipseInstallation(mavenized)
@@ -354,7 +354,7 @@ class BundlePlugin : Plugin<Project> {
         // At task execution time, before the run configuration is prepared, add the JAR as a bundle, and add all
         // runtime dependencies as bundles. This is done at task execution time because it resolves the configurations.
         addBundle(jarTask)
-        for(file in runtimeClasspathConfig) {
+        for(file in bundleRuntimeClasspath) {
           addBundle(file)
         }
       }

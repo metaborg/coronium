@@ -6,11 +6,11 @@ import mb.coronium.model.eclipse.BundleVersion
 import mb.coronium.model.eclipse.Feature
 import mb.coronium.plugin.base.BundleBasePlugin
 import mb.coronium.plugin.base.FeatureBasePlugin
+import mb.coronium.plugin.base.bundleElements
 import mb.coronium.plugin.base.bundleRuntimeClasspath
-import mb.coronium.plugin.base.bundleRuntimeElements
-import mb.coronium.plugin.base.bundleRuntimeUsage
-import mb.coronium.plugin.base.featureRuntimeElements
-import mb.coronium.plugin.base.featureRuntimeUsage
+import mb.coronium.plugin.base.bundleUsage
+import mb.coronium.plugin.base.featureElements
+import mb.coronium.plugin.base.featureUsage
 import mb.coronium.plugin.internal.MavenizeDslPlugin
 import mb.coronium.plugin.internal.MavenizePlugin
 import mb.coronium.plugin.internal.mavenizeExtension
@@ -64,10 +64,10 @@ class FeaturePlugin @Inject constructor(
 
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
+    project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to archive tasks.
+    project.pluginManager.apply(MavenizeDslPlugin::class)
     project.pluginManager.apply(BundleBasePlugin::class)
     project.pluginManager.apply(FeatureBasePlugin::class)
-    project.pluginManager.apply(MavenizeDslPlugin::class)
-    project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to archive tasks.
 
     val extension = FeatureExtension(project)
     project.extensions.add("feature", extension)
@@ -111,7 +111,7 @@ class FeaturePlugin @Inject constructor(
       isCanBeConsumed = false
       isCanBeResolved = true
       isVisible = false
-      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.bundleRuntimeUsage)
+      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.bundleUsage)
       extendsFrom(bundle)
     }
     project.configurations.create(featureIncludeReferences) {
@@ -119,14 +119,14 @@ class FeaturePlugin @Inject constructor(
       isCanBeConsumed = false
       isCanBeResolved = true
       isVisible = false
-      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.featureRuntimeUsage)
+      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.featureUsage)
       extendsFrom(featureInclude)
     }
 
-    // Extend bundleRuntimeElements and featureRuntimeElements, such that the dependencies to included bundles and
-    // bundles from included features are exported when deployed, which can then be consumed by other projects.
-    project.bundleRuntimeElements.extendsFrom(bundle, featureInclude)
-    project.featureRuntimeElements.extendsFrom(featureInclude)
+    // Extend bundleElements and featureElements, such that the dependencies to included bundles and bundles from
+    // included features are exported when deployed, which can then be consumed by other projects.
+    project.bundleElements.extendsFrom(bundle, featureInclude)
+    project.featureElements.extendsFrom(featureInclude)
 
     // Extend bundleRuntimeClasspath, such that included bundles and bundles from included features are loaded when
     // running Eclipse.
@@ -153,9 +153,11 @@ class FeaturePlugin @Inject constructor(
   ): TaskProvider<*> {
     val featureXmlFile = project.file(featureXmlFilename).toPath()
     return project.tasks.register("finalizeFeatureXml") {
-      // Depend on bundle runtime configurations, because they influence how a feature model is built, which in turn influences the final feature XML file.
-      dependsOn(project.bundleRuntimeClasspath)
-      inputs.files({ project.bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
+      // Depend on bundleReferences and featureIncludeReferences, because they influence how a feature model is built, which in turn influences the final feature XML file.
+      dependsOn(project.bundleReferences)
+      inputs.files({ project.bundleReferences }) // Closure to defer configuration resolution until task execution.
+      dependsOn(project.featureIncludeReferences)
+      inputs.files({ project.featureIncludeReferences }) // Closure to defer configuration resolution until task execution.
 
       inputs.file(featureXmlFile)
       outputs.file(featureXmlOutputFile)
@@ -229,17 +231,17 @@ class FeaturePlugin @Inject constructor(
     }
     project.tasks.getByName(LifecycleBasePlugin.BUILD_TASK_NAME).dependsOn(featureJarTask)
 
-    // Register the output of the Jar task as an artifact for the featureRuntimeElements configuration.
-    project.featureRuntimeElements.outgoing.artifact(featureJarTask)
+    // Register the output of the Jar task as an artifact for the featureElements configuration.
+    project.featureElements.outgoing.artifact(featureJarTask)
 
-    // Create a new feature component and add variants from the bundleRuntimeElements to it.
+    // Create a new feature component and add variants from featureElements and bundleElements to it.
     val featureComponent = @Suppress("UnstableApiUsage") run {
       val featureComponent = softwareComponentFactory.adhoc("feature")
       project.components.add(featureComponent)
-      featureComponent.addVariantsFromConfiguration(project.featureRuntimeElements) {
+      featureComponent.addVariantsFromConfiguration(project.featureElements) {
         mapToMavenScope("runtime")
       }
-      featureComponent.addVariantsFromConfiguration(project.bundleRuntimeElements) {
+      featureComponent.addVariantsFromConfiguration(project.bundleElements) {
         mapToMavenScope("runtime")
       }
       featureComponent
@@ -265,18 +267,18 @@ class FeaturePlugin @Inject constructor(
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
       description = "Prepares an Eclipse run configuration for running the bundles of this feature in an Eclipse instance"
 
-      val runtimeClasspathConfig = project.bundleRuntimeClasspath
+      val bundleRuntimeClasspath = project.bundleRuntimeClasspath
 
       // Depend on the bundle runtime configurations.
-      dependsOn(runtimeClasspathConfig)
-      inputs.files({ runtimeClasspathConfig }) // Closure to defer configuration resolution until task execution.
+      dependsOn(bundleRuntimeClasspath)
+      inputs.files({ bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
 
       setFromMavenizedEclipseInstallation(mavenized)
 
       doFirst {
         // At task execution time, before the run configuration is prepared, add all runtime dependencies as bundles.
         // This is done at task execution time because it resolves the configurations.
-        for(file in runtimeClasspathConfig) {
+        for(file in bundleRuntimeClasspath) {
           addBundle(file)
         }
       }

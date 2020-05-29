@@ -10,9 +10,9 @@ import mb.coronium.plugin.base.BundleBasePlugin
 import mb.coronium.plugin.base.FeatureBasePlugin
 import mb.coronium.plugin.base.RepositoryBasePlugin
 import mb.coronium.plugin.base.bundleRuntimeClasspath
-import mb.coronium.plugin.base.bundleRuntimeUsage
-import mb.coronium.plugin.base.featureRuntimeUsage
-import mb.coronium.plugin.base.repositoryRuntimeElements
+import mb.coronium.plugin.base.bundleUsage
+import mb.coronium.plugin.base.featureUsage
+import mb.coronium.plugin.base.repositoryArchive
 import mb.coronium.plugin.internal.MavenizeDslPlugin
 import mb.coronium.plugin.internal.MavenizePlugin
 import mb.coronium.plugin.internal.mavenizeExtension
@@ -72,11 +72,11 @@ class RepositoryPlugin @Inject constructor(
 
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
+    project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to archive tasks.
+    project.pluginManager.apply(MavenizeDslPlugin::class)
     project.pluginManager.apply(BundleBasePlugin::class)
     project.pluginManager.apply(FeatureBasePlugin::class)
     project.pluginManager.apply(RepositoryBasePlugin::class)
-    project.pluginManager.apply(MavenizeDslPlugin::class)
-    project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to archive tasks.
 
     val extension = RepositoryExtension(project)
     project.extensions.add("repository", extension)
@@ -129,7 +129,7 @@ class RepositoryPlugin @Inject constructor(
       isCanBeConsumed = false
       isCanBeResolved = true
       isVisible = false
-      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.bundleRuntimeUsage)
+      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.bundleUsage)
       extendsFrom(feature)
     }
     project.configurations.create(repositoryFeatureArtifacts) {
@@ -137,7 +137,7 @@ class RepositoryPlugin @Inject constructor(
       isCanBeConsumed = false
       isCanBeResolved = true
       isVisible = false
-      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.featureRuntimeUsage)
+      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.featureUsage)
       extendsFrom(feature)
     }
 
@@ -387,14 +387,14 @@ class RepositoryPlugin @Inject constructor(
     }
     project.tasks.getByName(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).dependsOn(archiveRepositoryTask)
 
-    // Register the output of the archive task as an artifact for the repositoryRuntimeElements configuration.
-    project.repositoryRuntimeElements.outgoing.artifact(archiveRepositoryTask)
+    // Register the output of the archive task as an artifact for the repositoryArchive configuration.
+    project.repositoryArchive.outgoing.artifact(archiveRepositoryTask)
 
-    // Create a new repository component and add variants from the repositoryRuntimeElements to it.
+    // Create a new repository component and add variants from the repositoryArchive to it.
     val repositoryComponent = @Suppress("UnstableApiUsage") run {
       val featureComponent = softwareComponentFactory.adhoc("repository")
       project.components.add(featureComponent)
-      featureComponent.addVariantsFromConfiguration(project.repositoryRuntimeElements) {
+      featureComponent.addVariantsFromConfiguration(project.repositoryArchive) {
         mapToMavenScope("runtime")
       }
       featureComponent
@@ -420,18 +420,18 @@ class RepositoryPlugin @Inject constructor(
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
       description = "Prepares an Eclipse run configuration for running the bundles of this repository in an Eclipse instance"
 
-      val runtimeClasspathConfig = project.bundleRuntimeClasspath
+      val bundleRuntimeClasspath = project.bundleRuntimeClasspath
 
       // Depend on the bundle runtime configurations.
-      dependsOn(runtimeClasspathConfig)
-      inputs.files({ runtimeClasspathConfig }) // Closure to defer configuration resolution until task execution.
+      dependsOn(bundleRuntimeClasspath)
+      inputs.files({ bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
 
       setFromMavenizedEclipseInstallation(mavenized)
 
       doFirst {
         // At task execution time, before the run configuration is prepared, add all runtime dependencies as bundles.
         // This is done at task execution time because it resolves the configurations.
-        for(file in runtimeClasspathConfig) {
+        for(file in bundleRuntimeClasspath) {
           addBundle(file)
         }
       }
