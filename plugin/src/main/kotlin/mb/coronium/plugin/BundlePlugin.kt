@@ -9,7 +9,12 @@ import mb.coronium.model.eclipse.BundleVersion
 import mb.coronium.model.eclipse.DependencyResolution
 import mb.coronium.model.eclipse.DependencyVisibility
 import mb.coronium.model.maven.MavenVersionOrRange
+import mb.coronium.plugin.base.BundleBasePlugin
+import mb.coronium.plugin.base.bundleRuntimeClasspath
+import mb.coronium.plugin.base.bundleRuntimeElements
+import mb.coronium.plugin.internal.MavenizeDslPlugin
 import mb.coronium.plugin.internal.MavenizePlugin
+import mb.coronium.plugin.internal.mavenizeExtension
 import mb.coronium.plugin.internal.mavenizedEclipseInstallation
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
@@ -19,6 +24,7 @@ import mb.coronium.util.readManifestFromFile
 import mb.coronium.util.toStringMap
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.component.AdhocComponentWithVariants
 import org.gradle.api.plugins.JavaLibraryPlugin
@@ -51,6 +57,19 @@ open class BundleExtension(private val project: Project) {
 
 @Suppress("unused")
 class BundlePlugin : Plugin<Project> {
+  companion object {
+    const val bundleApi = "bundleApi"
+    const val bundleImplementation = "bundleImplementation"
+    const val bundleEmbedApi = "bundleEmbedApi"
+    const val bundleEmbedImplementation = "bundleEmbedImplementation"
+    const val bundleTargetPlatformApi = "bundleTargetPlatformApi"
+    const val bundleTargetPlatformImplementation = "bundleTargetPlatformImplementation"
+
+    const val bundleEmbedClasspath = "bundleEmbedClasspath"
+    const val requireBundleReexport = "requireBundleReexport"
+    const val requireBundlePrivate = "requireBundlePrivate"
+  }
+
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
     project.pluginManager.apply(BundleBasePlugin::class)
@@ -64,34 +83,105 @@ class BundlePlugin : Plugin<Project> {
   }
 
   private fun configure(project: Project, extension: BundleExtension) {
-    // HACK: eagerly load Mavenize Plugin, as it adds a repository that must be available in the configuration phase.
-    // This currently disables the ability for users to customize the Eclipse target platform.
-    project.pluginManager.apply(MavenizePlugin::class)
-    val mavenized = project.mavenizedEclipseInstallation()
-
     configureConfigurations(project)
     configureBndTask(project)
     configureBuildProperties(project)
     configureJarTask(project, extension)
-    configureRunEclipseTask(project, mavenized)
+
+    project.afterEvaluate {
+      // TODO: modify mavenization to not require afterEvaluate.
+      project.pluginManager.apply(MavenizePlugin::class)
+      configureRunEclipseTask(project, project.mavenizedEclipseInstallation())
+    }
   }
 
   private fun configureConfigurations(project: Project) {
+    // User-facing configurations
+    val bundleApi = project.configurations.create(bundleApi) {
+      description = "API dependencies to bundles with reexport visibility"
+      isCanBeConsumed = false
+      isCanBeResolved = false
+      isVisible = false
+    }
+    val bundleImplementation = project.configurations.create(bundleImplementation) {
+      description = "Implementation dependencies to bundles with private visibility"
+      isCanBeConsumed = false
+      isCanBeResolved = false
+      isVisible = false
+    }
+    val bundleEmbedApi = project.configurations.create(bundleEmbedApi) {
+      description = "API dependencies to Java libraries embedded into the bundle, with reexport visibility"
+      isCanBeConsumed = false
+      isCanBeResolved = false
+      isVisible = false
+    }
+    val bundleEmbedImplementation = project.configurations.create(bundleEmbedImplementation) {
+      description = "Implementation dependencies to Java libraries embedded into the bundle, with private visibility"
+      isCanBeConsumed = false
+      isCanBeResolved = false
+      isVisible = false
+      extendsFrom(bundleEmbedApi)
+    }
+    val bundleTargetPlatformApi = project.configurations.create(bundleTargetPlatformApi) {
+      description = "API dependencies to target platform bundles with reexport visibility"
+      isCanBeConsumed = false
+      isCanBeResolved = false
+      isVisible = false
+    }
+    val bundleTargetPlatformImplementation = project.configurations.create(bundleTargetPlatformImplementation) {
+      description = "Implementation dependencies to target platform bundles with private visibility"
+      isCanBeConsumed = false
+      isCanBeResolved = false
+      isVisible = false
+    }
+
+    // Internal (resolvable) configurations
+    project.configurations.create(bundleEmbedClasspath) {
+      description = "Classpath for JARs to embed into the bundle"
+      isCanBeConsumed = false
+      isCanBeResolved = true
+      isVisible = false
+      extendsFrom(bundleEmbedImplementation)
+    }
+    project.configurations.create(requireBundleReexport) {
+      description = "Require-Bundle dependencies with reexport visibility"
+      isCanBeConsumed = false
+      isCanBeResolved = true
+      isVisible = false
+      isTransitive = false // Does not need to be transitive, only interested in direct dependencies.
+      extendsFrom(bundleApi, bundleTargetPlatformApi)
+    }
+    project.configurations.create(requireBundlePrivate) {
+      description = "Require-Bundle dependencies with private visibility"
+      isCanBeConsumed = false
+      isCanBeResolved = true
+      isVisible = false
+      isTransitive = false // Does not need to be transitive, only interested in direct dependencies.
+      extendsFrom(bundleImplementation, bundleTargetPlatformImplementation)
+    }
+
+    // Extend bundleRuntimeElements, such that the dependencies to bundles are exported when deployed, which
+    // can then be consumed by other projects.
+    project.bundleRuntimeElements.extendsFrom(bundleApi, bundleImplementation)
+
+    // Extend bundleRuntimeClasspath, such that bundles are loaded when running Eclipse.
+    project.bundleRuntimeClasspath.extendsFrom(bundleApi, bundleImplementation)
+
     // Register the output of the Jar task as an artifact for the bundleRuntimeElements configuration.
     project.bundleRuntimeElements.outgoing.artifact(project.tasks.named<Jar>(JavaPlugin.JAR_TASK_NAME))
 
     // Connection to Java configurations.
     project.configurations.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME).extendsFrom(
-      project.bundleApi,
-      project.bundleImplementation,
-      project.bundleEmbedImplementation,
-      project.bundleTargetPlatformApi,
-      project.bundleTargetPlatformImplementation
+      bundleApi,
+      bundleImplementation,
+      bundleEmbedImplementation,
+      bundleTargetPlatformApi,
+      bundleTargetPlatformImplementation
     )
     project.configurations.getByName(JavaPlugin.API_ELEMENTS_CONFIGURATION_NAME).extendsFrom(
-      project.bundleApi,
-      project.bundleEmbedApi,
-      project.bundleTargetPlatformApi
+      bundleApi,
+      bundleEmbedApi,
+      bundleTargetPlatformApi
     )
 
     // Add variants from the bundleRuntimeElements to the Java component.
@@ -278,3 +368,7 @@ class BundlePlugin : Plugin<Project> {
     }
   }
 }
+
+private val Project.bundleEmbedClasspath get(): Configuration = this.configurations.getByName(BundlePlugin.bundleEmbedClasspath)
+private val Project.requireBundleReexport get(): Configuration = this.configurations.getByName(BundlePlugin.requireBundleReexport)
+private val Project.requireBundlePrivate get(): Configuration = this.configurations.getByName(BundlePlugin.requireBundlePrivate)

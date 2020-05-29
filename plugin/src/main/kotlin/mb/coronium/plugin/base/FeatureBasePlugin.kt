@@ -1,4 +1,4 @@
-package mb.coronium.plugin
+package mb.coronium.plugin.base
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -17,8 +17,6 @@ open class FeatureBasePlugin @Inject constructor(
   }
 
   override fun apply(project: Project) {
-    project.pluginManager.apply(CoroniumBasePlugin::class)
-
     // Attributes
     val featureRuntimeUsage = objectFactory.named(Usage::class.java, featureRuntimeUsage)
 
@@ -32,5 +30,7 @@ open class FeatureBasePlugin @Inject constructor(
     }
   }
 }
+
+internal val Project.featureRuntimeUsage get(): Usage = this.objects.named(Usage::class.java, FeatureBasePlugin.featureRuntimeUsage)
 
 internal val Project.featureRuntimeElements get(): Configuration = this.configurations.getByName(FeatureBasePlugin.featureRuntimeElements)

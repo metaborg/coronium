@@ -1,6 +1,6 @@
 package mb.coronium.task
 
-import mb.coronium.plugin.MavenizeExtension
+import mb.coronium.plugin.internal.MavenizeExtension
 import mb.coronium.mavenize.MavenizedEclipseInstallation
 import org.gradle.api.tasks.JavaExec
 

@@ -48,7 +48,7 @@ class EclipseToMavenConverter(private val fallbackGroupId: String) {
     return MavenArtifact(coordinates, dependencies)
   }
 
-  fun convert(coordinates: Feature.Dependency.Coordinates): DependencyCoordinates {
+  fun convert(coordinates: Feature.BundleInclude.Coordinates): DependencyCoordinates {
     val groupId = bundleNameToGroupIds[coordinates.id] ?: fallbackGroupId
     return coordinates.toMaven(groupId)
   }

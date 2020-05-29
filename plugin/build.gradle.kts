@@ -16,23 +16,31 @@ gradlePlugin {
   plugins {
     create("coronium-base") {
       id = "org.metaborg.coronium.base"
-      implementationClass = "mb.coronium.plugin.CoroniumBasePlugin"
+      implementationClass = "mb.coronium.plugin.base.CoroniumBasePlugin"
     }
 
     create("coronium-bundle-base") {
       id = "org.metaborg.coronium.bundle.base"
-      implementationClass = "mb.coronium.plugin.BundleBasePlugin"
+      implementationClass = "mb.coronium.plugin.base.BundleBasePlugin"
     }
     create("coronium-bundle") {
       id = "org.metaborg.coronium.bundle"
       implementationClass = "mb.coronium.plugin.BundlePlugin"
     }
 
+    create("coronium-feature-base") {
+      id = "org.metaborg.coronium.feature.base"
+      implementationClass = "mb.coronium.plugin.base.FeatureBasePlugin"
+    }
     create("coronium-feature") {
       id = "org.metaborg.coronium.feature"
       implementationClass = "mb.coronium.plugin.FeaturePlugin"
     }
 
+    create("coronium-repository-base") {
+      id = "org.metaborg.coronium.repository.base"
+      implementationClass = "mb.coronium.plugin.base.RepositoryBasePlugin"
+    }
     create("coronium-repository") {
       id = "org.metaborg.coronium.repository"
       implementationClass = "mb.coronium.plugin.RepositoryPlugin"

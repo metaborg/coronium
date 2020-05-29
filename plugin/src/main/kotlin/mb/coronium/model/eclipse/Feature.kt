@@ -15,23 +15,35 @@ data class Feature(
   val id: String,
   val version: BundleVersion,
   val label: String?,
-  val dependencies: Collection<Dependency>
+  val bundleIncludes: Collection<BundleInclude>,
+  val featureIncludes: Collection<FeatureInclude>
 ) {
-  data class Dependency(
+  data class BundleInclude(
     val coordinates: Coordinates,
     val unpack: Boolean
   ) {
     data class Coordinates(val id: String, val version: BundleVersion?)
 
     fun mapVersion(func: (BundleVersion) -> BundleVersion) =
-      Dependency(Coordinates(coordinates.id, if(coordinates.version == null) coordinates.version else func(coordinates.version)), unpack)
+      BundleInclude(Coordinates(coordinates.id, if(coordinates.version == null) coordinates.version else func(coordinates.version)), unpack)
+  }
+
+  data class FeatureInclude(
+    val coordinates: Coordinates,
+    val optional: Boolean
+  ) {
+    data class Coordinates(val id: String, val version: BundleVersion?)
+
+    fun mapVersion(func: (BundleVersion) -> BundleVersion) =
+      FeatureInclude(Coordinates(coordinates.id, if(coordinates.version == null) coordinates.version else func(coordinates.version)), optional)
   }
 
   class Builder {
     var id: String? = null
     var version: BundleVersion? = null
     var label: String? = null
-    var dependencies: MutableCollection<Dependency> = mutableListOf()
+    var bundleIncludes: MutableCollection<BundleInclude> = mutableListOf()
+    var featureIncludes: MutableCollection<FeatureInclude> = mutableListOf()
 
     fun readFromFeatureXml(file: Path, log: Log) {
       val doc = Files.newInputStream(file).buffered().use { inputStream ->
@@ -73,8 +85,21 @@ data class Feature(
               val depVersionStr = subNode.attributes.getNamedItem("version")?.nodeValue
               val unpack = subNode.attributes.getNamedItem("unpack")?.nodeValue?.toBoolean() ?: false
               val depVersion = parseVersionStr(depVersionStr, log)
-              val coordinates = Dependency.Coordinates(depId, depVersion)
-              dependencies.add(Dependency(coordinates, unpack))
+              val coordinates = BundleInclude.Coordinates(depId, depVersion)
+              bundleIncludes.add(BundleInclude(coordinates, unpack))
+            }
+          }
+          "includes" -> {
+            val depId = subNode.attributes.getNamedItem("id")?.nodeValue
+
+            if(depId == null) {
+              log.warning("Skipping feature include without id in feature.xml")
+            } else {
+              val depVersionStr = subNode.attributes.getNamedItem("version")?.nodeValue
+              val optional = subNode.attributes.getNamedItem("optional")?.nodeValue?.toBoolean() ?: false
+              val depVersion = parseVersionStr(depVersionStr, log)
+              val coordinates = FeatureInclude.Coordinates(depId, depVersion)
+              featureIncludes.add(FeatureInclude(coordinates, optional))
             }
           }
           else -> {
@@ -103,47 +128,69 @@ data class Feature(
       id ?: error("Cannot create feature, id was not set"),
       version ?: error("Cannot create feature, version was not set"),
       label,
-      dependencies
+      bundleIncludes,
+      featureIncludes
     )
   }
 
-  fun mergeWith(gradleDependencies: ResolvedConfiguration): Feature {
-    val mergedDependencies: MutableCollection<Dependency> = mutableListOf()
+  fun mergeWith(gradleBundleIncludes: ResolvedConfiguration, gradleFeatureIncludes: ResolvedConfiguration): Feature {
+    val mergedBundleIncludes: MutableCollection<BundleInclude> = mutableListOf()
+    val mergedFeatureIncludes: MutableCollection<FeatureInclude> = mutableListOf()
 
     // Add all Gradle dependencies or merge its version with an existing feature dependency
-    gradleDependencies.resolvedArtifacts.forEach { resolvedArtifact ->
+    gradleBundleIncludes.resolvedArtifacts.forEach { resolvedArtifact ->
       val module = resolvedArtifact.moduleVersion.id
-
-      val existingDependency = dependencies.find { it.coordinates.id == module.name }
+      val existingDependency = bundleIncludes.find { it.coordinates.id == module.name }
       val dependencyVersion = MavenVersion.parse(module.version).toEclipse()
-
       if(existingDependency == null) {
-        val coordinates = Dependency.Coordinates(module.name, dependencyVersion)
-        val mergedDependency = Dependency(coordinates, false)
-        mergedDependencies.add(mergedDependency)
+        val coordinates = BundleInclude.Coordinates(module.name, dependencyVersion)
+        val mergedDependency = BundleInclude(coordinates, false)
+        mergedBundleIncludes.add(mergedDependency)
       } else {
-        val coordinates = Dependency.Coordinates(existingDependency.coordinates.id, dependencyVersion)
-        val mergedDependency = Dependency(coordinates, existingDependency.unpack)
-        mergedDependencies.add(mergedDependency)
+        val coordinates = BundleInclude.Coordinates(existingDependency.coordinates.id, dependencyVersion)
+        val mergedDependency = BundleInclude(coordinates, existingDependency.unpack)
+        mergedBundleIncludes.add(mergedDependency)
+      }
+    }
+    gradleFeatureIncludes.resolvedArtifacts.forEach { resolvedArtifact ->
+      val module = resolvedArtifact.moduleVersion.id
+      val existingDependency = bundleIncludes.find { it.coordinates.id == module.name }
+      val dependencyVersion = MavenVersion.parse(module.version).toEclipse()
+      if(existingDependency == null) {
+        val coordinates = FeatureInclude.Coordinates(module.name, dependencyVersion)
+        val mergedDependency = FeatureInclude(coordinates, false)
+        mergedFeatureIncludes.add(mergedDependency)
+      } else {
+        val coordinates = FeatureInclude.Coordinates(existingDependency.coordinates.id, dependencyVersion)
+        val mergedDependency = FeatureInclude(coordinates, existingDependency.unpack)
+        mergedFeatureIncludes.add(mergedDependency)
       }
     }
 
-    // Add all feature dependencies that are not also Gradle dependencies
-    dependencies.forEach { featureDependency ->
-      if(!gradleDependencies.resolvedArtifacts.any { it.name == featureDependency.coordinates.id }) {
-        mergedDependencies.add(featureDependency)
+    // Add all includes not found in the Gradle configurations.
+    bundleIncludes.forEach { bundleInclude ->
+      if(!gradleBundleIncludes.resolvedArtifacts.any { it.name == bundleInclude.coordinates.id }) {
+        mergedBundleIncludes.add(bundleInclude)
+      }
+    }
+    featureIncludes.forEach { featureInclude ->
+      if(!gradleFeatureIncludes.resolvedArtifacts.any { it.name == featureInclude.coordinates.id }) {
+        mergedFeatureIncludes.add(featureInclude)
       }
     }
 
-    return Feature(id, version, label, mergedDependencies)
+    return Feature(id, version, label, mergedBundleIncludes, mergedFeatureIncludes)
   }
 
   fun writeToFeatureXml(outputStream: OutputStream) {
     PrintWriter(outputStream).use { writer ->
       writer.println("""<?xml version="1.0" encoding="UTF-8"?>""")
       writer.println("""<feature id="$id" version="$version"${if(label != null) """ label="$label"""" else ""}>""")
-      for(dependency in dependencies) {
-        writer.println("""  <plugin id="${dependency.coordinates.id}" version="${dependency.coordinates.version}" unpack="${dependency.unpack}"/>""")
+      for(bundleInclude in bundleIncludes) {
+        writer.println("""  <plugin id="${bundleInclude.coordinates.id}" version="${bundleInclude.coordinates.version}" unpack="${bundleInclude.unpack}"/>""")
+      }
+      for(featureInclude in featureIncludes) {
+        writer.println("""  <includes id="${featureInclude.coordinates.id}" version="${featureInclude.coordinates.version}" optional="${featureInclude.optional}"/>""")
       }
       writer.println("</feature>")
       writer.flush()

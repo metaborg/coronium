@@ -6,7 +6,16 @@ import mb.coronium.model.eclipse.BundleVersion
 import mb.coronium.model.eclipse.BundleVersionRange
 import mb.coronium.model.eclipse.Feature
 import mb.coronium.model.eclipse.Repository
+import mb.coronium.plugin.base.BundleBasePlugin
+import mb.coronium.plugin.base.FeatureBasePlugin
+import mb.coronium.plugin.base.RepositoryBasePlugin
+import mb.coronium.plugin.base.bundleRuntimeClasspath
+import mb.coronium.plugin.base.bundleRuntimeUsage
+import mb.coronium.plugin.base.featureRuntimeUsage
+import mb.coronium.plugin.base.repositoryRuntimeElements
+import mb.coronium.plugin.internal.MavenizeDslPlugin
 import mb.coronium.plugin.internal.MavenizePlugin
+import mb.coronium.plugin.internal.mavenizeExtension
 import mb.coronium.plugin.internal.mavenizedEclipseInstallation
 import mb.coronium.task.EclipseRun
 import mb.coronium.task.PrepareEclipseRunConfig
@@ -17,6 +26,8 @@ import mb.coronium.util.readManifestFromFile
 import mb.coronium.util.unpack
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.provider.Property
@@ -53,10 +64,17 @@ open class RepositoryExtension(private val project: Project) {
 class RepositoryPlugin @Inject constructor(
   private val softwareComponentFactory: SoftwareComponentFactory
 ) : Plugin<Project> {
+  companion object {
+    const val feature = "feature"
+    const val repositoryFeatureArtifacts = "repositoryFeatureArtifacts"
+    const val repositoryBundleArtifacts = "repositoryBundleArtifacts"
+  }
+
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
-    project.pluginManager.apply(RepositoryBasePlugin::class)
+    project.pluginManager.apply(BundleBasePlugin::class)
     project.pluginManager.apply(FeatureBasePlugin::class)
+    project.pluginManager.apply(RepositoryBasePlugin::class)
     project.pluginManager.apply(MavenizeDslPlugin::class)
     project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to archive tasks.
 
@@ -67,18 +85,15 @@ class RepositoryPlugin @Inject constructor(
   }
 
   private fun configure(project: Project, extension: RepositoryExtension) {
-    // HACK: eagerly load Mavenize Plugin, as it adds a repository that must be available in the configuration phase.
-    // This currently disables the ability for users to customize the Eclipse target platform.
-    project.pluginManager.apply(MavenizePlugin::class)
-    val mavenized = project.mavenizedEclipseInstallation()
+    configureConfigurations(project)
 
     val repositorySource = project.buildDir.resolve("repositorySource")
 
-    val copiedFeaturesDir = repositorySource.resolve("features")
-    val copyFeaturesTask = configureCopyFeaturesTask(project, copiedFeaturesDir)
-
     val copiedBundlesDir = repositorySource.resolve("bundles")
     val copyBundlesTask = configureCopyBundlesTask(project, copiedBundlesDir)
+
+    val copiedFeaturesDir = repositorySource.resolve("features")
+    val copyFeaturesTask = configureCopyFeaturesTask(project, copiedFeaturesDir)
 
     val replacedQualifierDir = project.buildDir.resolve("replacedQualifier")
     val replaceQualifierTask = configureReplaceQualifierTask(project, extension, copyBundlesTask, copyFeaturesTask, copiedBundlesDir, copiedFeaturesDir, replacedQualifierDir)
@@ -86,39 +101,76 @@ class RepositoryPlugin @Inject constructor(
     val repositoryXmlFile = project.buildDir.resolve("repositoryXml/repository.xml")
     val createRepositoryXmlTask = configureCreateRepositoryXmlTask(project, extension, repositoryXmlFile)
 
-    val repositoryDir = project.buildDir.resolve("repository")
-    val createRepositoryTask = configureCreateRepositoryTask(project, extension, mavenized, replaceQualifierTask, createRepositoryXmlTask, replacedQualifierDir, repositoryXmlFile, repositoryDir)
+    project.afterEvaluate {
+      // TODO: modify mavenization to not require afterEvaluate.
+      project.pluginManager.apply(MavenizePlugin::class)
+      val mavenized = project.mavenizedEclipseInstallation()
 
-    configureArchiveRepositoryTask(project, extension, createRepositoryTask, repositoryDir)
-    configureRunTask(project, mavenized)
-  }
+      val repositoryDir = project.buildDir.resolve("repository")
+      val createRepositoryTask = configureCreateRepositoryTask(project, mavenized, replaceQualifierTask, createRepositoryXmlTask, replacedQualifierDir, repositoryXmlFile, repositoryDir)
 
-  private fun configureCopyFeaturesTask(project: Project, copiedFeaturesDir: File): TaskProvider<*> {
-    val featureRuntimeClasspath = project.repositoryFeatureArtifacts
-    return project.tasks.register<Sync>("copyFeatures") {
-      dependsOn(featureRuntimeClasspath)
-      inputs.files({ featureRuntimeClasspath })
-
-      from({ featureRuntimeClasspath })
-      into(copiedFeaturesDir)
-
-      doFirst {
-        copiedFeaturesDir.mkdirs()
-      }
+      configureArchiveRepositoryTask(project, extension, createRepositoryTask, repositoryDir)
+      configureRunEclipseTask(project, mavenized)
     }
   }
 
-  private fun configureCopyBundlesTask(project: Project, copiedBundlesDir: File): TaskProvider<*> {
-    val bundleRuntimeClasspath = project.repositoryBundleArtifacts
-    return project.tasks.register<Sync>("copyBundles") {
-      dependsOn(bundleRuntimeClasspath)
-      inputs.files({ bundleRuntimeClasspath })
+  private fun configureConfigurations(project: Project) {
+    // User-facing configurations
+    val feature = project.configurations.create(feature) {
+      description = "Feature dependencies to be included in the repository"
+      isCanBeConsumed = false
+      isCanBeResolved = false
+      isVisible = false
+    }
 
-      from({ bundleRuntimeClasspath })
+    // Internal (resolvable) configurations
+    project.configurations.create(repositoryBundleArtifacts) {
+      description = "Bundle artifacts that should end up in the repository"
+      isCanBeConsumed = false
+      isCanBeResolved = true
+      isVisible = false
+      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.bundleRuntimeUsage)
+      extendsFrom(feature)
+    }
+    project.configurations.create(repositoryFeatureArtifacts) {
+      description = "Feature artifacts that should end up in the repository"
+      isCanBeConsumed = false
+      isCanBeResolved = true
+      isVisible = false
+      attributes.attribute(Usage.USAGE_ATTRIBUTE, project.featureRuntimeUsage)
+      extendsFrom(feature)
+    }
+
+    // Extend bundleRuntimeClasspath, such that bundles included from features are loaded when running Eclipse.
+    project.bundleRuntimeClasspath.extendsFrom(feature)
+  }
+
+  private fun configureCopyBundlesTask(project: Project, copiedBundlesDir: File): TaskProvider<*> {
+    val repositoryBundleArtifacts = project.repositoryBundleArtifacts
+    return project.tasks.register<Sync>("copyBundles") {
+      dependsOn(repositoryBundleArtifacts)
+      inputs.files({ repositoryBundleArtifacts })
+
+      from({ repositoryBundleArtifacts })
       into(copiedBundlesDir)
 
       doFirst {
         copiedBundlesDir.mkdirs()
+      }
+    }
+  }
+
+  private fun configureCopyFeaturesTask(project: Project, copiedFeaturesDir: File): TaskProvider<*> {
+    val repositoryFeatureArtifacts = project.repositoryFeatureArtifacts
+    return project.tasks.register<Sync>("copyFeatures") {
+      dependsOn(repositoryFeatureArtifacts)
+      inputs.files({ repositoryFeatureArtifacts })
+
+      from({ repositoryFeatureArtifacts })
+      into(copiedFeaturesDir)
+
+      doFirst {
+        copiedFeaturesDir.mkdirs()
       }
     }
   }
@@ -170,7 +222,14 @@ class RepositoryPlugin @Inject constructor(
                   it?.replace("qualifier", concreteQualifier)
                 }
                 // Replace qualifier in dependencies.
-                builder.dependencies = builder.dependencies.map { dep ->
+                builder.bundleIncludes = builder.bundleIncludes.map { dep ->
+                  dep.mapVersion { version ->
+                    version.mapQualifier {
+                      it?.replace("qualifier", concreteQualifier)
+                    }
+                  }
+                }.toMutableList()
+                builder.featureIncludes = builder.featureIncludes.map { dep ->
                   dep.mapVersion { version ->
                     version.mapQualifier {
                       it?.replace("qualifier", concreteQualifier)
@@ -270,7 +329,6 @@ class RepositoryPlugin @Inject constructor(
 
   private fun configureCreateRepositoryTask(
     project: Project,
-    extension: RepositoryExtension,
     mavenized: MavenizedEclipseInstallation,
     replaceQualifierTask: TaskProvider<*>,
     createRepositoryXmlTask: TaskProvider<*>,
@@ -357,7 +415,7 @@ class RepositoryPlugin @Inject constructor(
     }
   }
 
-  private fun configureRunTask(project: Project, mavenized: MavenizedEclipseInstallation) {
+  private fun configureRunEclipseTask(project: Project, mavenized: MavenizedEclipseInstallation) {
     // Run Eclipse with direct dependencies.
     val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
       description = "Prepares an Eclipse run configuration for running the bundles of this repository in an Eclipse instance"
@@ -387,3 +445,6 @@ class RepositoryPlugin @Inject constructor(
     }
   }
 }
+
+private val Project.repositoryFeatureArtifacts get(): Configuration = this.configurations.getByName(RepositoryPlugin.repositoryFeatureArtifacts)
+private val Project.repositoryBundleArtifacts get(): Configuration = this.configurations.getByName(RepositoryPlugin.repositoryBundleArtifacts)

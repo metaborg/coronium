@@ -1,4 +1,4 @@
-package mb.coronium.plugin
+package mb.coronium.plugin.internal
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project

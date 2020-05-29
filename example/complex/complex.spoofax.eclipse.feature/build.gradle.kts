@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-  bundleApi(project(":complex.spoofax.eclipse"))
+  bundle(project(":complex.spoofax.eclipse"))
 }

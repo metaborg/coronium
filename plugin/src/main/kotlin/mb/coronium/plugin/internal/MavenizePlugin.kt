@@ -2,7 +2,6 @@ package mb.coronium.plugin.internal
 
 import mb.coronium.mavenize.MavenizedEclipseInstallation
 import mb.coronium.mavenize.mavenizeEclipseInstallation
-import mb.coronium.plugin.mavenizeExtension
 import mb.coronium.util.GradleLog
 import org.gradle.api.Plugin
 import org.gradle.api.Project

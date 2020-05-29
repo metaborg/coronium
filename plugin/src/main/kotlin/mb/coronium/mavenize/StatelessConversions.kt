@@ -86,7 +86,7 @@ fun MavenDependency.toEclipse(): BundleDependency {
 }
 
 
-fun Feature.Dependency.Coordinates.toMaven(
+fun Feature.BundleInclude.Coordinates.toMaven(
   groupId: String,
   classifier: String? = null,
   extension: String? = null
