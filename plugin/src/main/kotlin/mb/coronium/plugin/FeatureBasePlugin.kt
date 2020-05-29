@@ -14,7 +14,6 @@ open class FeatureBasePlugin @Inject constructor(
   companion object {
     const val featureRuntimeUsage = "feature-runtime"
     const val featureRuntimeElements = "featureRuntimeElements"
-    const val featureRuntimeClasspath = "featureRuntimeClasspath"
   }
 
   override fun apply(project: Project) {
@@ -31,17 +30,7 @@ open class FeatureBasePlugin @Inject constructor(
       isVisible = false
       attributes.attribute(Usage.USAGE_ATTRIBUTE, featureRuntimeUsage)
     }
-
-    // Internal (resolvable) configurations
-    project.configurations.create(featureRuntimeClasspath) {
-      description = "Classpath for executing this feature in the target platform"
-      isCanBeConsumed = false
-      isCanBeResolved = true
-      isVisible = false
-      attributes.attribute(Usage.USAGE_ATTRIBUTE, featureRuntimeUsage)
-    }
   }
 }
 
 internal val Project.featureRuntimeElements get(): Configuration = this.configurations.getByName(FeatureBasePlugin.featureRuntimeElements)
-internal val Project.featureRuntimeClasspath get(): Configuration = this.configurations.getByName(FeatureBasePlugin.featureRuntimeClasspath)

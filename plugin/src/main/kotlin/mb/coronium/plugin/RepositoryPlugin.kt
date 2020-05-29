@@ -74,11 +74,11 @@ class RepositoryPlugin @Inject constructor(
 
     val repositorySource = project.buildDir.resolve("repositorySource")
 
-    val copiedBundlesDir = repositorySource.resolve("bundles")
-    val copyBundlesTask = configureCopyBundlesTask(project, copiedBundlesDir)
-
     val copiedFeaturesDir = repositorySource.resolve("features")
     val copyFeaturesTask = configureCopyFeaturesTask(project, copiedFeaturesDir)
+
+    val copiedBundlesDir = repositorySource.resolve("bundles")
+    val copyBundlesTask = configureCopyBundlesTask(project, copiedBundlesDir)
 
     val replacedQualifierDir = project.buildDir.resolve("replacedQualifier")
     val replaceQualifierTask = configureReplaceQualifierTask(project, extension, copyBundlesTask, copyFeaturesTask, copiedBundlesDir, copiedFeaturesDir, replacedQualifierDir)
@@ -93,23 +93,8 @@ class RepositoryPlugin @Inject constructor(
     configureRunTask(project, mavenized)
   }
 
-  private fun configureCopyBundlesTask(project: Project, copiedBundlesDir: File): TaskProvider<*> {
-    val bundleRuntimeClasspath = project.bundleRuntimeClasspath
-    return project.tasks.register<Sync>("copyBundles") {
-      dependsOn(bundleRuntimeClasspath)
-      inputs.files({ bundleRuntimeClasspath })
-
-      from({ bundleRuntimeClasspath })
-      into(copiedBundlesDir)
-
-      doFirst {
-        copiedBundlesDir.mkdirs()
-      }
-    }
-  }
-
   private fun configureCopyFeaturesTask(project: Project, copiedFeaturesDir: File): TaskProvider<*> {
-    val featureRuntimeClasspath = project.featureRuntimeClasspath
+    val featureRuntimeClasspath = project.repositoryFeatureArtifacts
     return project.tasks.register<Sync>("copyFeatures") {
       dependsOn(featureRuntimeClasspath)
       inputs.files({ featureRuntimeClasspath })
@@ -119,6 +104,21 @@ class RepositoryPlugin @Inject constructor(
 
       doFirst {
         copiedFeaturesDir.mkdirs()
+      }
+    }
+  }
+
+  private fun configureCopyBundlesTask(project: Project, copiedBundlesDir: File): TaskProvider<*> {
+    val bundleRuntimeClasspath = project.repositoryBundleArtifacts
+    return project.tasks.register<Sync>("copyBundles") {
+      dependsOn(bundleRuntimeClasspath)
+      inputs.files({ bundleRuntimeClasspath })
+
+      from({ bundleRuntimeClasspath })
+      into(copiedBundlesDir)
+
+      doFirst {
+        copiedBundlesDir.mkdirs()
       }
     }
   }
@@ -242,10 +242,10 @@ class RepositoryPlugin @Inject constructor(
     extension: RepositoryExtension,
     repositoryXmlFile: File
   ): TaskProvider<*> {
-    val featureRuntimeClasspath = project.featureRuntimeClasspath
+    val repositoryFeatureArtifacts = project.repositoryFeatureArtifacts
     return project.tasks.register("createRepositoryXml") {
-      dependsOn(featureRuntimeClasspath)
-      inputs.files({ featureRuntimeClasspath })
+      dependsOn(repositoryFeatureArtifacts)
+      inputs.files({ repositoryFeatureArtifacts })
       outputs.file(repositoryXmlFile)
       doLast {
         // Build repository model from repository description file (category.xml or site.xml) and Gradle project.
@@ -256,7 +256,7 @@ class RepositoryPlugin @Inject constructor(
             builder.readFromRepositoryXml(repositoryDescriptionFile, extension.log)
           }
           val repository = builder.build()
-          repository.mergeWith(featureRuntimeClasspath.resolvedConfiguration)
+          repository.mergeWith(repositoryFeatureArtifacts.resolvedConfiguration)
         }
         // Write repository model to file.
         repositoryXmlFile.parentFile.mkdirs()

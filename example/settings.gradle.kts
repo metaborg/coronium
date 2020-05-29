@@ -27,5 +27,5 @@ fun String.includeProject(id: String, path: String = "$this/$id") {
   includeProject("complex.tiger")
   includeProject("complex.tiger.eclipse")
   includeProject("complex.tiger.eclipse.feature")
-  //includeProject("complex.tiger.eclipse.repository")
+  includeProject("complex.tiger.eclipse.repository")
 }
