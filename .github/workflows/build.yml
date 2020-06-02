@@ -5,12 +5,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        gradle: [5.3.1, 5.4.1, 5.5.1, 5.6.4, 6.0.1, 6.1.1, 6.2.2, 6.3, 6.4.1]
+        os: [ubuntu-18.04, windows-2019, macos-10.15]
+        gradle: [5.6.4, 6.4.1]
         experimental: [false]
         include:
-          - gradle: rc
+          - os: ubuntu-18.04
+            gradle: rc
             experimental: true
-    runs-on: ubuntu-18.04
+          - os: windows-2019
+            gradle: rc
+            experimental: true
+          - os: macos-10.15
+            gradle: rc
+            experimental: true
+    runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
     steps:
       - uses: actions/checkout@v2

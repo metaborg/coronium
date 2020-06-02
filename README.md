@@ -156,7 +156,10 @@ Coronium currently just copies it over.
 
 Coronium supports embedding Java libraries into your bundle with the `bundleEmbedApi`/`bundleEmbedImplementation` configurations.
 This internally uses the [Gradle BND plugin](https://plugins.gradle.org/plugin/biz.aQute.bnd) to embed the libraries into the bundle.
-To control what BND embeds and exports, either add entries to `Export-Package` in your `META-INF/MANIFEST.MF` file, or configure the BND plugin in Gradle.
+
+To control what BND embeds and exports, either add entries to `Export-Package`/`Private-Package` in your `META-INF/MANIFEST.MF` file, or configure the BND plugin in Gradle.
+Do not mix `Export-Package`/`Private-Package` directives between `META-INF/MANIFEST.MF` and the Gradle build file, as the contents of these directives are not merged and one will be chosen.
+
 For example, dependencies can be embedded as follows:
 
 ```kotlin
@@ -167,35 +170,51 @@ plugins {
 dependencies {
   bundleTargetPlatformApi(eclipse("javax.inject"))
 
-  bundleEmbedApi(project(":common"))
-  bundleEmbedApi(project(":spoofax.core"))
-
+  bundleEmbedApi(project(":complex.spoofax"))
   bundleEmbedApi("org.metaborg:log.api")
-  bundleEmbedApi("org.metaborg:resource")
   bundleEmbedApi("org.metaborg:pie.api")
-  bundleEmbedApi("org.metaborg:pie.runtime")
-  bundleEmbedApi("org.metaborg:pie.dagger")
-
-  bundleEmbedApi("org.metaborg:org.spoofax.terms")
-
   bundleEmbedApi("com.google.dagger:dagger")
+
+  bundleEmbedImplementation("org.metaborg:log.backend.slf4j")
+  bundleEmbedImplementation("org.slf4j:slf4j-simple")
 }
 
-val exports = listOf(
-  "mb.*;provider=mb;mandatory:=provider",
-  "org.spoofax.*;provider=mb;mandatory:=provider",
-  "dagger;provider=mb;mandatory:=provider",
+// For Java libraries that are embedded into the bundle, and are exported (i.e., bundleEmbedApi), we need to add an
+// Export-Package directive to the JAR manifest that determines which packages should be exported. Only classes from
+// these packages will be embedded. The BND plugin will perform the embedding. Therefore, the Export-Package
+// syntax from BND is supported: https://bnd.bndtools.org/heads/export_package.html
+val exportPackage = listOf(
+  // Regular packages to be exported. Note that this export cannot be written in META-INF/MANIFEST.MF, otherwise its
+  // Export-Package directive would overwrite this one, leading to embedded dependencies not being exported.
+  "mb.spoofax.eclipse",
+  // Embedded packages to be exported. Using ';provider=mb;mandatory:=provider' to prevent these packages from being
+  // imported with a regular Import-Package directive. They can only be used with a Require-Bundle dependency to this
+  // bundle, or by qualifying an Import-Package directive with ';provider=mb'.
+  "mb.spoofax.*;provider=mb;mandatory:=provider",
+  "mb.log.api.*;provider=mb;mandatory:=provider",
+  "mb.pie.*;provider=mb;mandatory:=provider",
   "dagger.*;provider=mb;mandatory:=provider"
+)
+// Likewise, for Java libraries that are embedded into the bundle, but not exported (i.e., bundleEmbedImplementation),
+// we need to add a Private-Package directive to the JAR manifest that determines which packages should be included.
+// Only classes from these packages will be embedded. Again, the BND plugin will perform the embedding. Therefore, the
+// Private-Package syntax from BND is supported: https://bnd.bndtools.org/heads/private_package.html
+val privatePackage = listOf(
+  "mb.log.slf4j.*",
+  "org.slf4j.*"
 )
 tasks {
   "jar"(Jar::class) {
     manifest {
       attributes(
-        Pair("Export-Package", exports.joinToString(", "))
+        // Pass the above lists as the Export-Package and Private-Package directives of the JAR manifest.
+        Pair("Export-Package", exportPackage.joinToString(", ")),
+        Pair("Private-Package", privatePackage.joinToString(", "))
       )
     }
   }
 }
+
 ```
 
 ## Building Eclipse features
