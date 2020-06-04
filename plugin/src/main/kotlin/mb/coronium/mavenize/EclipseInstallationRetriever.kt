@@ -18,7 +18,6 @@ fun retrieveEclipseInstallation(urlStr: String, cacheDir: Path, forceDownload: B
   }
   val unpackDir = cacheDir.resolve(filename.replace('.', '_'))
   val archiveFile = cacheDir.resolve(filename)
-
   val url = URL(urlStr)
   val shouldDownload = forceDownload || shouldDownload(url, archiveFile)
   if(shouldDownload) {
