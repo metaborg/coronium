@@ -36,9 +36,9 @@ fun shouldDownload(url: URL, file: Path): Boolean {
   return if(!Files.exists(file)) {
     true
   } else {
-    // Skip checking if file should be re-downloaded within an hour.
+    // Skip checking if file should be re-downloaded within a day.
     val timestamp = Files.getLastModifiedTime(file).toInstant()
-    if(timestamp.isAfter(Instant.now().minusSeconds(3600))) {
+    if(timestamp.isAfter(Instant.now().minusSeconds(86400))) {
       return false
     }
     Files.setLastModifiedTime(file, FileTime.from(Instant.now()))
