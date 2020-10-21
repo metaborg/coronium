@@ -1,3 +1,8 @@
+[![GitHub license](https://img.shields.io/github/license/metaborg/coronium)](https://github.com/metaborg/pie/blob/master/LICENSE)
+[![Jenkins](https://img.shields.io/jenkins/build/https/buildfarm.metaborg.org/job/metaborg/job/coronium/job/master)](https://buildfarm.metaborg.org/job/metaborg/job/pie/job/master/lastBuild)
+[![coronium](https://img.shields.io/maven-metadata/v?label=coronium&metadataUrl=https%3A%2F%2Fartifacts.metaborg.org%2Fcontent%2Frepositories%2Freleases%2Forg%2Fmetaborg%2Fcoronium%2Fmaven-metadata.xml)](https://mvnrepository.com/artifact/org.metaborg/coronium?repo=metaborg-releases)
+
+
 # Coronium
 
 Coronium is a Gradle plugin for building, developing, and publishing Eclipse plugins.
@@ -54,9 +59,11 @@ Apply the bundle plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.2")
+  id("org.metaborg.coronium.bundle") version("0.3.4")
 }
 ```
+
+The latest version of the plugin can be found at the top of this readme.
 
 Now, your project will automatically be compiled into an OSGi bundle.
 Eclipse plugins are just OSGi bundles with additional metadata, so we use the terms (OSGi) bundle and (Eclipse) plugin interchangeably.
@@ -164,7 +171,7 @@ For example, dependencies can be embedded as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.2")
+  id("org.metaborg.coronium.bundle") version("0.3.4")
 }
 
 dependencies {
@@ -223,7 +230,7 @@ Apply the feature plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.feature") version("0.3.2")
+  id("org.metaborg.coronium.feature") version("0.3.4")
 }
 ```
 
@@ -256,7 +263,7 @@ Apply the repository plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.repository") version("0.3.2")
+  id("org.metaborg.coronium.repository") version("0.3.4")
 }
 ```
 
@@ -267,3 +274,12 @@ dependencies {
   feature(project(":tiger.eclipse.feature"))
 }
 ```
+
+## Running the Eclipse IDE with plugins/features/repositories
+
+To start an Eclipse IDE instance with your plugin, feature, or repository included in the IDE, simply execute the `runEclipse` task.
+Currently, this will start [Eclipse IDE for Eclipse Committers 2020-06](https://www.eclipse.org/downloads/packages/release/2020-06/r/eclipse-ide-eclipse-committers).
+This variant and version is currently hardcoded, but will be made configurable in the future.
+
+When `runEclipse` is used on a feature, all plugins that are (transitively) included in the feature will be loaded into the Eclipse instance.
+Likewise, when used on a repository, all plugins that are (transitively) included in the repository and included from features will be loaded into the Eclipse instance.
