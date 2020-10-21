@@ -68,7 +68,7 @@ open class MavenizeExtension(private val project: Project) {
   var os: EclipseOs = EclipseOs.current()
   var arch: EclipseArch = EclipseArch.current()
   var mirrorUrl: String = "https://mirror.dkm.cz/eclipse/"
-  var majorVersion = "2019-12"
+  var majorVersion = "2020-06"
   var minorVersion = "R"
   var prefixUrl: String = "technology/epp/downloads/release/$majorVersion/$minorVersion/eclipse-committers-$majorVersion-$minorVersion"
   var groupId: String = "eclipse-$majorVersion-$minorVersion"
