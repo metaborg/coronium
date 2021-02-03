@@ -43,7 +43,7 @@ pluginManagement {
 }
 ```
 
-If you are on Gradle 5.3-5.6, Gradle metadata needs to be enabled. Add the following line to your settings.gradle(.kts) file:
+If you are on Gradle 5.3-5.6.4, Gradle metadata needs to be enabled. Add the following line to your settings.gradle(.kts) file:
 
 ```kotlin
 if(org.gradle.util.VersionNumber.parse(gradle.gradleVersion).major < 6) {
