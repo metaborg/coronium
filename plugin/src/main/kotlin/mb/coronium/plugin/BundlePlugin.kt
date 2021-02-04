@@ -41,9 +41,15 @@ import java.nio.file.Files
 open class BundleExtension(private val project: Project) {
   var manifestFile: Property<File> = project.objects.property()
 
-  fun createEclipseTargetPlatformDependency(name: String, version: String? = null): Provider<ExternalModuleDependency> {
-    return project.mavenizeExtension().groupId.map {
-      project.dependencies.create(it, name, version ?: "[0,)")
+  fun createEclipseTargetPlatformDependency(name: String, version: String? = null): Any {
+    if(org.gradle.util.VersionNumber.parse(project.gradle.gradleVersion).major < 6) {
+      // Gradle < 6 does not support adding a (lazy) Provider as a dependency. Fall back to old behaviour.
+      project.mavenizeExtension().finalizeVersion()
+      return project.dependencies.create(project.mavenizeExtension().groupId.get(), name, version ?: "[0,)")
+    } else {
+      return project.mavenizeExtension().groupId.map {
+        project.dependencies.create(it, name, version ?: "[0,)")
+      }
     }
   }
 
