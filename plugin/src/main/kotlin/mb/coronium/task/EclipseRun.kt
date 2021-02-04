@@ -1,6 +1,6 @@
 package mb.coronium.task
 
-import mb.coronium.plugin.internal.lazilyGetMavenizedEclipseInstallation
+import mb.coronium.plugin.internal.lazilyMavenize
 import mb.coronium.plugin.internal.mavenizeExtension
 import mb.coronium.util.toPortableString
 import org.gradle.api.file.FileCollection
@@ -64,7 +64,7 @@ open class EclipseRun : JavaExec() {
 
     val mavenizedExtension = project.mavenizeExtension()
     mavenizedExtension.finalizeOsArch()
-    val mavenized = project.lazilyGetMavenizedEclipseInstallation()
+    val mavenized = project.lazilyMavenize()
 
     args(mavenizedExtension.os.get().extraJvmArgs)
     args(

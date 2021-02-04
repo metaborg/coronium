@@ -113,8 +113,7 @@ open class MavenizeExtension(project: Project) {
 
 class MavenizePlugin : Plugin<Project> {
   companion object {
-    const val mavenizedEclipseInstallationExtraName = "mavenized_eclipse_installation"
-    const val mavenizedRepositoryExtraName = "mavenized_repository"
+    const val lazilyMavenizedExtraName = "lazily_mavenized"
     val mavenizeDir: Path = Paths.get(System.getProperty("user.home"), ".mavenize")
     val repoDir: Path = mavenizeDir.resolve("repo")
   }
@@ -123,40 +122,31 @@ class MavenizePlugin : Plugin<Project> {
   override fun apply(project: Project) {
     val extension = MavenizeExtension(project)
     project.extensions.add("mavenize", extension)
+
+    @Suppress("UnstableApiUsage")
+    project.repositories {
+      maven {
+        name = "mavenized"
+        setUrl(MavenizePlugin.repoDir)
+        // This repository only resolves to the groupId of the mavenized Eclipse instances.
+        content {
+          includeGroupByRegex("eclipse-.+")
+        }
+        // Make Gradle look at directory structure when Gradle metadata is enabled, as per: https://github.com/gradle/gradle/issues/11321#issuecomment-552894258
+        metadataSources {
+          mavenPom()
+          artifact()
+        }
+      }
+    }
   }
 }
 
 internal fun Project.mavenizeExtension() = project.extensions.getByType<MavenizeExtension>()
 
-internal fun Project.lazilyMavenize() {
-  lazilyGetMavenizedEclipseInstallation()
-  lazilyAddMavenizedRepository()
-}
-
-internal fun Project.lazilyAddMavenizedRepository() {
-  if(project.extra.has(MavenizePlugin.mavenizedRepositoryExtraName)) return
-  @Suppress("UnstableApiUsage")
-  project.repositories {
-    maven {
-      name = "mavenized"
-      setUrl(MavenizePlugin.repoDir)
-      // This repository only resolves to the groupId of the mavenized Eclipse instances.
-      content {
-        includeGroupByRegex("eclipse-.+")
-      }
-      // Make Gradle look at directory structure when Gradle metadata is enabled, as per: https://github.com/gradle/gradle/issues/11321#issuecomment-552894258
-      metadataSources {
-        mavenPom()
-        artifact()
-      }
-    }
-  }
-  project.extra.set(MavenizePlugin.mavenizedRepositoryExtraName, true)
-}
-
-internal fun Project.lazilyGetMavenizedEclipseInstallation(): MavenizedEclipseInstallation {
-  if(project.extra.has(MavenizePlugin.mavenizedEclipseInstallationExtraName)) {
-    return project.extra[MavenizePlugin.mavenizedEclipseInstallationExtraName] as MavenizedEclipseInstallation
+internal fun Project.lazilyMavenize(): MavenizedEclipseInstallation {
+  if(project.extra.has(MavenizePlugin.lazilyMavenizedExtraName)) {
+    return project.extra[MavenizePlugin.lazilyMavenizedExtraName] as MavenizedEclipseInstallation
   }
 
   val extension = project.mavenizeExtension()
@@ -169,6 +159,6 @@ internal fun Project.lazilyGetMavenizedEclipseInstallation(): MavenizedEclipseIn
     extension.groupId.get(),
     GradleLog(project.logger)
   )
-  project.extra.set(MavenizePlugin.mavenizedEclipseInstallationExtraName, mavenized)
+  project.extra.set(MavenizePlugin.lazilyMavenizedExtraName, mavenized)
   return mavenized
 }

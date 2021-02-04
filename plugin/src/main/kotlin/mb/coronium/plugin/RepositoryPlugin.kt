@@ -15,7 +15,6 @@ import mb.coronium.plugin.base.bundleUsage
 import mb.coronium.plugin.base.featureUsage
 import mb.coronium.plugin.base.repositoryArchive
 import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.lazilyGetMavenizedEclipseInstallation
 import mb.coronium.plugin.internal.lazilyMavenize
 import mb.coronium.task.EclipseRun
 import mb.coronium.util.GradleLog
@@ -336,7 +335,7 @@ class RepositoryPlugin @Inject constructor(
       inputs.file(repositoryXmlFile)
       outputs.dir(repositoryDir)
       doLast {
-        val eclipseLauncherPath = project.lazilyGetMavenizedEclipseInstallation().equinoxLauncherPath()?.toString()
+        val eclipseLauncherPath = project.lazilyMavenize().equinoxLauncherPath()?.toString()
           ?: error("Could not find Eclipse launcher")
 
         repositoryDir.deleteRecursively()
