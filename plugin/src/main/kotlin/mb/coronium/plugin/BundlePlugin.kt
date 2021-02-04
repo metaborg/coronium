@@ -1,6 +1,5 @@
 package mb.coronium.plugin
 
-import mb.coronium.mavenize.MavenizedEclipseInstallation
 import mb.coronium.mavenize.toEclipse
 import mb.coronium.model.eclipse.BuildProperties
 import mb.coronium.model.eclipse.Bundle
@@ -12,12 +11,10 @@ import mb.coronium.model.maven.MavenVersionOrRange
 import mb.coronium.plugin.base.BundleBasePlugin
 import mb.coronium.plugin.base.bundleElements
 import mb.coronium.plugin.base.bundleRuntimeClasspath
-import mb.coronium.plugin.internal.MavenizeDslPlugin
 import mb.coronium.plugin.internal.MavenizePlugin
+import mb.coronium.plugin.internal.lazilyMavenize
 import mb.coronium.plugin.internal.mavenizeExtension
-import mb.coronium.plugin.internal.mavenizedEclipseInstallation
 import mb.coronium.task.EclipseRun
-import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.GradleLog
 import mb.coronium.util.eclipseVersion
 import mb.coronium.util.readManifestFromFile
@@ -25,11 +22,12 @@ import mb.coronium.util.toStringMap
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.component.AdhocComponentWithVariants
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
@@ -43,8 +41,10 @@ import java.nio.file.Files
 open class BundleExtension(private val project: Project) {
   var manifestFile: Property<File> = project.objects.property()
 
-  fun createEclipseTargetPlatformDependency(name: String, version: String? = null): Dependency {
-    return project.dependencies.create(project.mavenizeExtension().groupId, name, version ?: "[0,)")
+  fun createEclipseTargetPlatformDependency(name: String, version: String? = null): Provider<ExternalModuleDependency> {
+    return project.mavenizeExtension().groupId.map {
+      project.dependencies.create(it, name, version ?: "[0,)")
+    }
   }
 
 
@@ -73,7 +73,7 @@ class BundlePlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
     project.pluginManager.apply(JavaLibraryPlugin::class)
-    project.pluginManager.apply(MavenizeDslPlugin::class)
+    project.pluginManager.apply(MavenizePlugin::class)
     project.pluginManager.apply(BundleBasePlugin::class)
 
     val extension = BundleExtension(project)
@@ -87,12 +87,7 @@ class BundlePlugin : Plugin<Project> {
     configureBndTask(project)
     configureBuildProperties(project)
     configureJarTask(project, extension)
-
-    project.afterEvaluate {
-      // TODO: modify mavenization to not require afterEvaluate.
-      project.pluginManager.apply(MavenizePlugin::class)
-      configureRunEclipseTask(project, project.mavenizedEclipseInstallation())
-    }
+    configureRunEclipseTask(project)
   }
 
   private fun configureConfigurations(project: Project) {
@@ -136,14 +131,15 @@ class BundlePlugin : Plugin<Project> {
     }
 
     // Internal (resolvable) configurations
-    project.configurations.create(bundleEmbedClasspath) {
+    val bundleEmbedClasspathConfiguration = project.configurations.register(bundleEmbedClasspath) {
       description = "Classpath for JARs to embed into the bundle"
       isCanBeConsumed = false
       isCanBeResolved = true
       isVisible = false
       extendsFrom(bundleEmbedImplementation)
     }
-    project.configurations.create(requireBundleReexport) {
+    bundleEmbedClasspathConfiguration.configure { withDependencies { project.lazilyMavenize() } }
+    val requireBundleReexportConfiguration = project.configurations.register(requireBundleReexport) {
       description = "Require-Bundle dependencies with reexport visibility"
       isCanBeConsumed = false
       isCanBeResolved = true
@@ -151,7 +147,8 @@ class BundlePlugin : Plugin<Project> {
       isTransitive = false // Does not need to be transitive, only interested in direct dependencies.
       extendsFrom(bundleApi, bundleTargetPlatformApi)
     }
-    project.configurations.create(requireBundlePrivate) {
+    requireBundleReexportConfiguration.configure { withDependencies { project.lazilyMavenize() } }
+    val requireBundlePrivateConfiguration = project.configurations.register(requireBundlePrivate) {
       description = "Require-Bundle dependencies with private visibility"
       isCanBeConsumed = false
       isCanBeResolved = true
@@ -159,6 +156,7 @@ class BundlePlugin : Plugin<Project> {
       isTransitive = false // Does not need to be transitive, only interested in direct dependencies.
       extendsFrom(bundleImplementation, bundleTargetPlatformImplementation)
     }
+    requireBundlePrivateConfiguration.configure { withDependencies { project.lazilyMavenize() } }
 
     // Extend bundleElements, such that the dependencies to bundles are exported when deployed, which
     // can then be consumed by other projects.
@@ -197,7 +195,7 @@ class BundlePlugin : Plugin<Project> {
     project.pluginManager.apply(aQute.bnd.gradle.BndBuilderPlugin::class)
     project.tasks.named<Jar>("jar").configure {
       withConvention(aQute.bnd.gradle.BundleTaskConvention::class) {
-        setClasspath(project.bundleEmbedClasspath)
+        setClasspath({ project.bundleEmbedClasspath }) // Closure to defer configuration resolution until task execution.
       }
       manifest {
         attributes(
@@ -228,21 +226,22 @@ class BundlePlugin : Plugin<Project> {
 
     // Set source directories and output directory from build properties.
     project.configure<SourceSetContainer> {
-      val mainSourceSet = getByName(SourceSet.MAIN_SOURCE_SET_NAME)
-      mainSourceSet.java {
-        if(!properties.sourceDirs.isEmpty()) {
-          setSrcDirs(properties.sourceDirs)
-        }
-        if(properties.outputDir != null) {
-          @Suppress("UnstableApiUsage")
-          outputDir = project.file(properties.outputDir)
+      named(SourceSet.MAIN_SOURCE_SET_NAME) {
+        java {
+          if(!properties.sourceDirs.isEmpty()) {
+            setSrcDirs(properties.sourceDirs)
+          }
+          if(properties.outputDir != null) {
+            @Suppress("UnstableApiUsage")
+            outputDir = project.file(properties.outputDir)
+          }
         }
       }
     }
 
     // Add resources from build properties.
     @Suppress("UnstableApiUsage")
-    project.tasks.getByName<ProcessResources>(JavaPlugin.PROCESS_RESOURCES_TASK_NAME) {
+    project.tasks.named<ProcessResources>(JavaPlugin.PROCESS_RESOURCES_TASK_NAME) {
       from(project.projectDir) {
         for(resource in properties.binaryIncludes) {
           include(resource)
@@ -332,12 +331,11 @@ class BundlePlugin : Plugin<Project> {
     }
   }
 
-  private fun configureRunEclipseTask(project: Project, mavenized: MavenizedEclipseInstallation) {
+  private fun configureRunEclipseTask(project: Project) {
     val jarTask = project.tasks.getByName<Jar>(JavaPlugin.JAR_TASK_NAME)
-
-    // Run Eclipse with this plugin and its dependencies.
-    val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
-      description = "Prepares an Eclipse run configuration for running this plugin in an Eclipse instance"
+    project.tasks.register<EclipseRun>("runEclipse") {
+      group = "coronium"
+      description = "Runs this plugin in an Eclipse instance"
 
       val bundleRuntimeClasspath = project.bundleRuntimeClasspath
 
@@ -347,9 +345,6 @@ class BundlePlugin : Plugin<Project> {
       dependsOn(bundleRuntimeClasspath)
       inputs.files({ bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
 
-      // Set run configuration from Mavenized Eclipse installation.
-      setFromMavenizedEclipseInstallation(mavenized)
-
       doFirst {
         // At task execution time, before the run configuration is prepared, add the JAR as a bundle, and add all
         // runtime dependencies as bundles. This is done at task execution time because it resolves the configurations.
@@ -357,14 +352,9 @@ class BundlePlugin : Plugin<Project> {
         for(file in bundleRuntimeClasspath) {
           addBundle(file)
         }
+        // Prepare run configuration before executing.
+        prepareEclipseRunConfig()
       }
-    }
-
-    project.tasks.register<EclipseRun>("runEclipse") {
-      group = "coronium"
-      description = "Runs this plugin in an Eclipse instance"
-
-      configure(prepareEclipseRunConfigurationTask, mavenized, project.mavenizeExtension())
     }
   }
 }

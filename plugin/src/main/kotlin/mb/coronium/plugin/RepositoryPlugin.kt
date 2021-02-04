@@ -1,6 +1,5 @@
 package mb.coronium.plugin
 
-import mb.coronium.mavenize.MavenizedEclipseInstallation
 import mb.coronium.model.eclipse.Bundle
 import mb.coronium.model.eclipse.BundleVersion
 import mb.coronium.model.eclipse.BundleVersionRange
@@ -13,12 +12,11 @@ import mb.coronium.plugin.base.bundleRuntimeClasspath
 import mb.coronium.plugin.base.bundleUsage
 import mb.coronium.plugin.base.featureUsage
 import mb.coronium.plugin.base.repositoryArchive
-import mb.coronium.plugin.internal.MavenizeDslPlugin
 import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.mavenizeExtension
-import mb.coronium.plugin.internal.mavenizedEclipseInstallation
+import mb.coronium.plugin.internal.lazilyAddMavenizedRepository
+import mb.coronium.plugin.internal.lazilyGetMavenizedEclipseInstallation
+import mb.coronium.plugin.internal.lazilyMavenize
 import mb.coronium.task.EclipseRun
-import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.GradleLog
 import mb.coronium.util.TempDir
 import mb.coronium.util.packJar
@@ -73,7 +71,7 @@ class RepositoryPlugin @Inject constructor(
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
     project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to archive tasks.
-    project.pluginManager.apply(MavenizeDslPlugin::class)
+    project.pluginManager.apply(MavenizePlugin::class)
     project.pluginManager.apply(BundleBasePlugin::class)
     project.pluginManager.apply(FeatureBasePlugin::class)
     project.pluginManager.apply(RepositoryBasePlugin::class)
@@ -101,17 +99,11 @@ class RepositoryPlugin @Inject constructor(
     val repositoryXmlFile = project.buildDir.resolve("repositoryXml/repository.xml")
     val createRepositoryXmlTask = configureCreateRepositoryXmlTask(project, extension, repositoryXmlFile)
 
-    project.afterEvaluate {
-      // TODO: modify mavenization to not require afterEvaluate.
-      project.pluginManager.apply(MavenizePlugin::class)
-      val mavenized = project.mavenizedEclipseInstallation()
+    val repositoryDir = project.buildDir.resolve("repository")
+    val createRepositoryTask = configureCreateRepositoryTask(project, replaceQualifierTask, createRepositoryXmlTask, replacedQualifierDir, repositoryXmlFile, repositoryDir)
 
-      val repositoryDir = project.buildDir.resolve("repository")
-      val createRepositoryTask = configureCreateRepositoryTask(project, mavenized, replaceQualifierTask, createRepositoryXmlTask, replacedQualifierDir, repositoryXmlFile, repositoryDir)
-
-      configureArchiveRepositoryTask(project, extension, createRepositoryTask, repositoryDir)
-      configureRunEclipseTask(project, mavenized)
-    }
+    configureArchiveRepositoryTask(project, extension, createRepositoryTask, repositoryDir)
+    configureRunEclipseTask(project)
   }
 
   private fun configureConfigurations(project: Project) {
@@ -124,7 +116,7 @@ class RepositoryPlugin @Inject constructor(
     }
 
     // Internal (resolvable) configurations
-    project.configurations.create(repositoryBundleArtifacts) {
+    val repositoryBundleArtifactsConfiguration = project.configurations.register(repositoryBundleArtifacts) {
       description = "Bundle artifacts that should end up in the repository"
       isCanBeConsumed = false
       isCanBeResolved = true
@@ -132,7 +124,8 @@ class RepositoryPlugin @Inject constructor(
       attributes.attribute(Usage.USAGE_ATTRIBUTE, project.bundleUsage)
       extendsFrom(feature)
     }
-    project.configurations.create(repositoryFeatureArtifacts) {
+    repositoryBundleArtifactsConfiguration.configure { withDependencies { project.lazilyMavenize() } }
+    val repositoryFeatureArtifactsConfiguration = project.configurations.register(repositoryFeatureArtifacts) {
       description = "Feature artifacts that should end up in the repository"
       isCanBeConsumed = false
       isCanBeResolved = true
@@ -140,6 +133,7 @@ class RepositoryPlugin @Inject constructor(
       attributes.attribute(Usage.USAGE_ATTRIBUTE, project.featureUsage)
       extendsFrom(feature)
     }
+    repositoryFeatureArtifactsConfiguration.configure { withDependencies { project.lazilyMavenize() } }
 
     // Extend bundleRuntimeClasspath, such that bundles included from features are loaded when running Eclipse.
     project.bundleRuntimeClasspath.extendsFrom(feature)
@@ -329,22 +323,22 @@ class RepositoryPlugin @Inject constructor(
 
   private fun configureCreateRepositoryTask(
     project: Project,
-    mavenized: MavenizedEclipseInstallation,
     replaceQualifierTask: TaskProvider<*>,
     createRepositoryXmlTask: TaskProvider<*>,
     replacedQualifierDir: File,
     repositoryXmlFile: File,
     repositoryDir: File
   ): TaskProvider<*> {
-    val eclipseLauncherPath = mavenized.equinoxLauncherPath()?.toString() ?: error("Could not find Eclipse launcher")
     return project.tasks.register("createRepository") {
       dependsOn(replaceQualifierTask)
       dependsOn(createRepositoryXmlTask)
       inputs.dir(replacedQualifierDir)
-      inputs.file(eclipseLauncherPath)
       inputs.file(repositoryXmlFile)
       outputs.dir(repositoryDir)
       doLast {
+        val eclipseLauncherPath = project.lazilyGetMavenizedEclipseInstallation().equinoxLauncherPath()?.toString()
+          ?: error("Could not find Eclipse launcher")
+
         repositoryDir.deleteRecursively()
         repositoryDir.mkdirs()
         project.javaexec {
@@ -406,7 +400,7 @@ class RepositoryPlugin @Inject constructor(
       if(extension.createPublication.get()) {
         project.pluginManager.withPlugin("maven-publish") {
           project.extensions.configure<PublishingExtension> {
-            publications.create<MavenPublication>("Repository") {
+            publications.register<MavenPublication>("Repository") {
               from(repositoryComponent)
             }
           }
@@ -415,10 +409,10 @@ class RepositoryPlugin @Inject constructor(
     }
   }
 
-  private fun configureRunEclipseTask(project: Project, mavenized: MavenizedEclipseInstallation) {
-    // Run Eclipse with direct dependencies.
-    val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
-      description = "Prepares an Eclipse run configuration for running the bundles of this repository in an Eclipse instance"
+  private fun configureRunEclipseTask(project: Project) {
+    project.tasks.register<EclipseRun>("runEclipse") {
+      group = "coronium"
+      description = "Runs this plugin in an Eclipse instance"
 
       val bundleRuntimeClasspath = project.bundleRuntimeClasspath
 
@@ -426,22 +420,15 @@ class RepositoryPlugin @Inject constructor(
       dependsOn(bundleRuntimeClasspath)
       inputs.files({ bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
 
-      setFromMavenizedEclipseInstallation(mavenized)
-
       doFirst {
         // At task execution time, before the run configuration is prepared, add all runtime dependencies as bundles.
         // This is done at task execution time because it resolves the configurations.
         for(file in bundleRuntimeClasspath) {
           addBundle(file)
         }
+        // Prepare run configuration before executing.
+        prepareEclipseRunConfig()
       }
-    }
-
-    project.tasks.register<EclipseRun>("runEclipse") {
-      group = "coronium"
-      description = "Runs the bundles of this repository in an Eclipse instance"
-
-      configure(prepareEclipseRunConfigurationTask, mavenized, project.mavenizeExtension())
     }
   }
 }

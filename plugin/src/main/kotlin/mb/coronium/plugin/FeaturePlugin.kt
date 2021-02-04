@@ -1,6 +1,5 @@
 package mb.coronium.plugin
 
-import mb.coronium.mavenize.MavenizedEclipseInstallation
 import mb.coronium.model.eclipse.BuildProperties
 import mb.coronium.model.eclipse.BundleVersion
 import mb.coronium.model.eclipse.Feature
@@ -11,12 +10,10 @@ import mb.coronium.plugin.base.bundleRuntimeClasspath
 import mb.coronium.plugin.base.bundleUsage
 import mb.coronium.plugin.base.featureElements
 import mb.coronium.plugin.base.featureUsage
-import mb.coronium.plugin.internal.MavenizeDslPlugin
 import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.mavenizeExtension
-import mb.coronium.plugin.internal.mavenizedEclipseInstallation
+import mb.coronium.plugin.internal.lazilyAddMavenizedRepository
+import mb.coronium.plugin.internal.lazilyMavenize
 import mb.coronium.task.EclipseRun
-import mb.coronium.task.PrepareEclipseRunConfig
 import mb.coronium.util.GradleLog
 import mb.coronium.util.eclipseVersion
 import org.gradle.api.Plugin
@@ -65,7 +62,7 @@ class FeaturePlugin @Inject constructor(
   override fun apply(project: Project) {
     project.pluginManager.apply(LifecycleBasePlugin::class)
     project.pluginManager.apply(JavaBasePlugin::class) // To apply several conventions to archive tasks.
-    project.pluginManager.apply(MavenizeDslPlugin::class)
+    project.pluginManager.apply(MavenizePlugin::class)
     project.pluginManager.apply(BundleBasePlugin::class)
     project.pluginManager.apply(FeatureBasePlugin::class)
 
@@ -82,11 +79,7 @@ class FeaturePlugin @Inject constructor(
     val featureXmlOutputFile = featureXmlOutputDir.resolve(featureXmlFilename)
     val finalizeFeatureXmlTask = configureFinalizeFeatureXmlTask(project, extension, featureXmlOutputFile)
     configureFeatureJarTask(project, extension, buildProperties, featureXmlOutputDir, finalizeFeatureXmlTask)
-    project.afterEvaluate {
-      // TODO: modify mavenization to not require afterEvaluate.
-      project.pluginManager.apply(MavenizePlugin::class)
-      configureRunEclipseTask(project, project.mavenizedEclipseInstallation())
-    }
+    configureRunEclipseTask(project)
   }
 
   private fun configureConfigurations(project: Project) {
@@ -106,7 +99,7 @@ class FeaturePlugin @Inject constructor(
     // TODO: support feature requirement through a featureRequire configuration.
 
     // Internal (resolvable) configurations
-    project.configurations.create(bundleReferences) {
+    val bundleReferencesConfiguration = project.configurations.register(bundleReferences) {
       description = "References to bundles to include in the feature.xml"
       isCanBeConsumed = false
       isCanBeResolved = true
@@ -114,7 +107,8 @@ class FeaturePlugin @Inject constructor(
       attributes.attribute(Usage.USAGE_ATTRIBUTE, project.bundleUsage)
       extendsFrom(bundle)
     }
-    project.configurations.create(featureIncludeReferences) {
+    bundleReferencesConfiguration.configure { withDependencies { project.lazilyMavenize() } }
+    val featureIncludeReferencesConfiguration = project.configurations.register(featureIncludeReferences) {
       description = "References to features to include in the feature.xml"
       isCanBeConsumed = false
       isCanBeResolved = true
@@ -122,6 +116,7 @@ class FeaturePlugin @Inject constructor(
       attributes.attribute(Usage.USAGE_ATTRIBUTE, project.featureUsage)
       extendsFrom(featureInclude)
     }
+    featureIncludeReferencesConfiguration.configure { withDependencies { project.lazilyMavenize() } }
 
     // Extend bundleElements and featureElements, such that the dependencies to included bundles and bundles from
     // included features are exported when deployed, which can then be consumed by other projects.
@@ -253,7 +248,7 @@ class FeaturePlugin @Inject constructor(
       if(extension.createPublication.get()) {
         project.pluginManager.withPlugin("maven-publish") {
           project.extensions.configure<PublishingExtension> {
-            publications.create<MavenPublication>("Feature") {
+            publications.register<MavenPublication>("Feature") {
               from(featureComponent)
             }
           }
@@ -262,10 +257,10 @@ class FeaturePlugin @Inject constructor(
     }
   }
 
-  private fun configureRunEclipseTask(project: Project, mavenized: MavenizedEclipseInstallation) {
-    // Run Eclipse with direct dependencies.
-    val prepareEclipseRunConfigurationTask = project.tasks.create<PrepareEclipseRunConfig>("prepareRunConfiguration") {
-      description = "Prepares an Eclipse run configuration for running the bundles of this feature in an Eclipse instance"
+  private fun configureRunEclipseTask(project: Project) {
+    project.tasks.register<EclipseRun>("runEclipse") {
+      group = "coronium"
+      description = "Runs this plugin in an Eclipse instance"
 
       val bundleRuntimeClasspath = project.bundleRuntimeClasspath
 
@@ -273,22 +268,15 @@ class FeaturePlugin @Inject constructor(
       dependsOn(bundleRuntimeClasspath)
       inputs.files({ bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
 
-      setFromMavenizedEclipseInstallation(mavenized)
-
       doFirst {
         // At task execution time, before the run configuration is prepared, add all runtime dependencies as bundles.
         // This is done at task execution time because it resolves the configurations.
         for(file in bundleRuntimeClasspath) {
           addBundle(file)
         }
+        // Prepare run configuration before executing.
+        prepareEclipseRunConfig()
       }
-    }
-
-    project.tasks.register<EclipseRun>("runEclipse") {
-      group = "coronium"
-      description = "Runs this bundles of this feature in an Eclipse instance"
-
-      configure(prepareEclipseRunConfigurationTask, mavenized, project.mavenizeExtension())
     }
   }
 }

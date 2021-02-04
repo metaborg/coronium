@@ -1,10 +1,13 @@
 package mb.coronium.plugin.base
 
+import mb.coronium.plugin.internal.MavenizePlugin
+import mb.coronium.plugin.internal.lazilyMavenize
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.attributes.Usage
 import org.gradle.api.model.ObjectFactory
+import org.gradle.kotlin.dsl.*
 import javax.inject.Inject
 
 open class BundleBasePlugin @Inject constructor(
@@ -31,13 +34,15 @@ open class BundleBasePlugin @Inject constructor(
     }
 
     // Internal (resolvable) configurations
-    project.configurations.create(bundleRuntimeClasspath) {
+    project.pluginManager.apply(MavenizePlugin::class)
+    val bundleRuntimeClasspathConfiguration = project.configurations.register(bundleRuntimeClasspath) {
       description = "Classpath for executing this bundle in the target platform"
       isCanBeConsumed = false
       isCanBeResolved = true
       isVisible = false
       attributes.attribute(Usage.USAGE_ATTRIBUTE, bundleUsage)
     }
+    bundleRuntimeClasspathConfiguration.configure { withDependencies { project.lazilyMavenize() } }
   }
 }
 
