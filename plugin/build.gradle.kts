@@ -8,8 +8,8 @@ plugins {
 }
 
 metaborg {
-  kotlinApiVersion = "1.2"
-  kotlinLanguageVersion = "1.2"
+  kotlinApiVersion = "1.3"
+  kotlinLanguageVersion = "1.3"
 }
 
 gradlePlugin {

@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 package mb.coronium.plugin.internal
 
 import mb.coronium.mavenize.MavenizedEclipseInstallation
@@ -80,8 +82,8 @@ open class MavenizeExtension(project: Project) {
     os.convention(EclipseOs.current())
     arch.convention(EclipseArch.current())
     mirrorUrl.convention("https://mirror.dkm.cz/eclipse/")
-    majorVersion.convention("2020-06");
-    minorVersion.convention("R");
+    majorVersion.convention("2020-06")
+    minorVersion.convention("R")
   }
 
   internal val groupId: Provider<String> = majorVersion.flatMap { majorVersion -> minorVersion.map { minorVersion -> "eclipse-$majorVersion-$minorVersion" } }
@@ -113,8 +115,8 @@ class MavenizePlugin : Plugin<Project> {
   companion object {
     const val mavenizedEclipseInstallationExtraName = "mavenized_eclipse_installation"
     const val mavenizedRepositoryExtraName = "mavenized_repository"
-    val mavenizeDir = Paths.get(System.getProperty("user.home"), ".mavenize")
-    val repoDir = mavenizeDir.resolve("repo")
+    val mavenizeDir: Path = Paths.get(System.getProperty("user.home"), ".mavenize")
+    val repoDir: Path = mavenizeDir.resolve("repo")
   }
 
 
@@ -133,7 +135,6 @@ internal fun Project.lazilyMavenize() {
 
 internal fun Project.lazilyAddMavenizedRepository() {
   if(project.extra.has(MavenizePlugin.mavenizedRepositoryExtraName)) return
-
   @Suppress("UnstableApiUsage")
   project.repositories {
     maven {
@@ -150,6 +151,7 @@ internal fun Project.lazilyAddMavenizedRepository() {
       }
     }
   }
+  project.extra.set(MavenizePlugin.mavenizedRepositoryExtraName, true)
 }
 
 internal fun Project.lazilyGetMavenizedEclipseInstallation(): MavenizedEclipseInstallation {
@@ -168,5 +170,5 @@ internal fun Project.lazilyGetMavenizedEclipseInstallation(): MavenizedEclipseIn
     GradleLog(project.logger)
   )
   project.extra.set(MavenizePlugin.mavenizedEclipseInstallationExtraName, mavenized)
-  return mavenized;
+  return mavenized
 }

@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 package mb.coronium.plugin
 
 import mb.coronium.mavenize.toEclipse
@@ -22,12 +24,10 @@ import mb.coronium.util.toStringMap
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.component.AdhocComponentWithVariants
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
@@ -37,17 +37,16 @@ import org.gradle.language.jvm.tasks.ProcessResources
 import java.io.File
 import java.nio.file.Files
 
-@Suppress("UnstableApiUsage")
 open class BundleExtension(private val project: Project) {
   var manifestFile: Property<File> = project.objects.property()
 
   fun createEclipseTargetPlatformDependency(name: String, version: String? = null): Any {
-    if(org.gradle.util.VersionNumber.parse(project.gradle.gradleVersion).major < 6) {
+    return if(org.gradle.util.VersionNumber.parse(project.gradle.gradleVersion).major < 6) {
       // Gradle < 6 does not support adding a (lazy) Provider as a dependency. Fall back to old behaviour.
       project.mavenizeExtension().finalizeVersion()
-      return project.dependencies.create(project.mavenizeExtension().groupId.get(), name, version ?: "[0,)")
+      project.dependencies.create(project.mavenizeExtension().groupId.get(), name, version ?: "[0,)")
     } else {
-      return project.mavenizeExtension().groupId.map {
+      project.mavenizeExtension().groupId.map {
         project.dependencies.create(it, name, version ?: "[0,)")
       }
     }

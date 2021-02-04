@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 package mb.coronium.plugin
 
 import mb.coronium.model.eclipse.Bundle
@@ -13,7 +15,6 @@ import mb.coronium.plugin.base.bundleUsage
 import mb.coronium.plugin.base.featureUsage
 import mb.coronium.plugin.base.repositoryArchive
 import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.lazilyAddMavenizedRepository
 import mb.coronium.plugin.internal.lazilyGetMavenizedEclipseInstallation
 import mb.coronium.plugin.internal.lazilyMavenize
 import mb.coronium.task.EclipseRun
@@ -42,8 +43,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
-@Suppress("unused")
-open class RepositoryExtension(private val project: Project) {
+open class RepositoryExtension(project: Project) {
   val repositoryDescriptionFile: Property<String> = project.objects.property()
   val qualifierReplacement: Property<String> = project.objects.property()
   val createPublication: Property<Boolean> = project.objects.property()

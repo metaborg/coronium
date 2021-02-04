@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 package mb.coronium.plugin
 
 import mb.coronium.model.eclipse.BuildProperties
@@ -11,7 +13,6 @@ import mb.coronium.plugin.base.bundleUsage
 import mb.coronium.plugin.base.featureElements
 import mb.coronium.plugin.base.featureUsage
 import mb.coronium.plugin.internal.MavenizePlugin
-import mb.coronium.plugin.internal.lazilyAddMavenizedRepository
 import mb.coronium.plugin.internal.lazilyMavenize
 import mb.coronium.task.EclipseRun
 import mb.coronium.util.GradleLog
@@ -33,8 +34,7 @@ import java.io.File
 import java.nio.file.Files
 import javax.inject.Inject
 
-@Suppress("unused")
-open class FeatureExtension(private val project: Project) {
+open class FeatureExtension(project: Project) {
   val createPublication: Property<Boolean> = project.objects.property()
 
   init {
