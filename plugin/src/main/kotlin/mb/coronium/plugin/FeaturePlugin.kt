@@ -154,7 +154,7 @@ class FeaturePlugin @Inject constructor(
       dependsOn(project.featureIncludeReferences)
       inputs.files({ project.featureIncludeReferences }) // Closure to defer configuration resolution until task execution.
 
-      inputs.file(featureXmlFile)
+      //inputs.file(featureXmlFile).optional() // HACK: optional does not seem to work, just remove input for now?
       outputs.file(featureXmlOutputFile)
 
       doLast {
