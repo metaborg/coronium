@@ -35,13 +35,17 @@ open class EclipseCreateInstallation : JavaExec() {
   val arch: Property<EclipseArch> = project.objects.property()
 
 
-  private val finalDestination: Provider<Path> = destination.flatMap { destination ->
-    os.map { os ->
-      if(os == EclipseOs.OSX) {
-        destination.resolve("${applicationName.get()}.app")
-      } else {
-        destination
-      }
+  val applicationDirectoryName: Provider<String> = os.map { os ->
+    if(os == EclipseOs.OSX) {
+      "${applicationName.get()}.app"
+    } else {
+      applicationName.get()
+    }
+  }
+
+  val finalDestination: Provider<Path> = destination.flatMap { destination ->
+    applicationDirectoryName.map { applicationDirectoryName ->
+      destination.resolve(applicationDirectoryName)
     }
   }
 
@@ -64,7 +68,7 @@ open class EclipseCreateInstallation : JavaExec() {
       "org.eclipse.jgit.feature.group",
       "org.eclipse.buildship.feature.group"
     ))
-    destination.convention(project.buildDir.toPath().resolve("eclipse"))
+    destination.convention(project.buildDir.toPath().resolve("eclipseInstallation"))
     applicationName.convention("Eclipse")
     os.convention(EclipseOs.current())
     arch.convention(EclipseArch.current())
@@ -88,6 +92,7 @@ open class EclipseCreateInstallation : JavaExec() {
     destination.finalizeValue()
     applicationName.finalizeValue()
     args("-destination", finalDestination.get())
+    finalDestination.get().toFile().deleteRecursively()
     args("-profile", "SDKProfile")
     args("-profileProperties", " org.eclipse.update.install.features=true")
     os.finalizeValue()

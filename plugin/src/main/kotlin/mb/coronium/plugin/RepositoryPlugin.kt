@@ -438,7 +438,7 @@ class RepositoryPlugin @Inject constructor(
     createRepositoryTask: TaskProvider<*>,
     repositoryDir: File
   ) {
-    project.tasks.register<EclipseCreateInstallation>("createEclipseInstallationForCurrentOsArch") {
+    val createTask = project.tasks.register<EclipseCreateInstallation>("createEclipseInstallationForCurrentOsArch") {
       group = "coronium"
       description = "Create an Eclipse installation for the current operating system and architecture, including the features of this repository"
 
@@ -452,6 +452,20 @@ class RepositoryPlugin @Inject constructor(
           "${it.name}.feature.group"
         }
       })
+    }
+
+    project.tasks.register<Zip>("archiveEclipseInstallationForCurrentOsArch") {
+      group = "coronium"
+      description = "Archives an Eclipse installation for the current operating system and architecture, including the features of this repository"
+
+      dependsOn(createTask)
+
+      archiveFileName.set(project.provider { "${createTask.get().applicationName.get()}.zip" })
+      destinationDirectory.set(project.buildDir.resolve("dist"))
+      from({ createTask.get().destination.get() })
+      doFirst {
+        include("${createTask.get().applicationDirectoryName.get()}/**")
+      }
     }
   }
 }
