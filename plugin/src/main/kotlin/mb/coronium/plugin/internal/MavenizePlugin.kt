@@ -10,37 +10,50 @@ import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.*
+import java.io.Serializable
 import java.nio.file.Path
 import java.nio.file.Paths
 
-enum class EclipseOs(
-  val archiveSuffix: String,
-  val archiveExtension: String,
-  val pluginsDir: Path,
-  val configurationDir: Path,
-  val extraJvmArgs: List<String>
-) {
-  Windows(
-    "win32",
-    "zip",
-    Paths.get("eclipse", "plugins"),
-    Paths.get("eclipse", "configuration"),
-    listOf()
-  ),
-  Linux(
-    "linux-gtk",
-    "tar.gz",
-    Paths.get("eclipse", "plugins"),
-    Paths.get("eclipse", "configuration"),
-    listOf()
-  ),
-  OSX(
-    "macosx-cocoa",
-    "dmg",
-    Paths.get("Eclipse.app", "Contents", "Eclipse", "plugins"),
-    Paths.get("Eclipse.app", "Contents", "Eclipse", "configuration"),
-    listOf("-XstartOnFirstThread")
-  );
+enum class EclipseOs : Serializable {
+  Windows {
+    override val archiveSuffix = "win32"
+    override val archiveExtension = "zip"
+    override val pluginsDir = Paths.get("eclipse", "plugins")
+    override val configurationDir = Paths.get("eclipse", "configuration")
+    override val extraJvmArgs: List<String> = listOf()
+
+    override val p2OsName = "win32"
+    override val p2WsName = "win32"
+  },
+  Linux {
+    override val archiveSuffix = "linux-gtk"
+    override val archiveExtension = "tar.gz"
+    override val pluginsDir = Paths.get("eclipse", "plugins")
+    override val configurationDir = Paths.get("eclipse", "configuration")
+    override val extraJvmArgs: List<String> = listOf()
+
+    override val p2OsName = "linux"
+    override val p2WsName = "gtk"
+  },
+  OSX {
+    override val archiveSuffix = "macosx-cocoa"
+    override val archiveExtension = "dmg"
+    override val pluginsDir = Paths.get("Eclipse.app", "Contents", "Eclipse", "plugins")
+    override val configurationDir = Paths.get("Eclipse.app", "Contents", "Eclipse", "configuration")
+    override val extraJvmArgs: List<String> = listOf("-XstartOnFirstThread")
+
+    override val p2OsName = "macosx"
+    override val p2WsName = "cocoa"
+  };
+
+  abstract val archiveSuffix: String
+  abstract val archiveExtension: String
+  abstract val pluginsDir: Path
+  abstract val configurationDir: Path
+  abstract val extraJvmArgs: List<String>
+
+  abstract val p2OsName: String
+  abstract val p2WsName: String
 
   companion object {
     fun current(): EclipseOs {
@@ -55,9 +68,21 @@ enum class EclipseOs(
   }
 }
 
-enum class EclipseArch(val archiveSuffix: String) {
-  X86_32(""),
-  X86_64("-x86_64");
+enum class EclipseArch : Serializable {
+  X86_32 {
+    override val archiveSuffix = ""
+
+    override val p2ArchName = "x86"
+  },
+  X86_64 {
+    override val archiveSuffix = "-x86_64"
+
+    override val p2ArchName = "x86_64"
+  };
+
+  abstract val archiveSuffix: String
+
+  abstract val p2ArchName: String
 
   companion object {
     fun current(): EclipseArch {

@@ -16,6 +16,7 @@ import mb.coronium.plugin.base.featureUsage
 import mb.coronium.plugin.base.repositoryArchive
 import mb.coronium.plugin.internal.MavenizePlugin
 import mb.coronium.plugin.internal.lazilyMavenize
+import mb.coronium.task.EclipseCreateInstallation
 import mb.coronium.task.EclipseRun
 import mb.coronium.util.GradleLog
 import mb.coronium.util.TempDir
@@ -103,6 +104,7 @@ class RepositoryPlugin @Inject constructor(
 
     configureArchiveRepositoryTask(project, extension, createRepositoryTask, repositoryDir)
     configureRunEclipseTask(project)
+    configureCreateEclipseInstallationTask(project, createRepositoryTask, repositoryDir)
   }
 
   private fun configureConfigurations(project: Project) {
@@ -411,7 +413,7 @@ class RepositoryPlugin @Inject constructor(
   private fun configureRunEclipseTask(project: Project) {
     project.tasks.register<EclipseRun>("runEclipse") {
       group = "coronium"
-      description = "Runs this plugin in an Eclipse instance"
+      description = "Runs the bundles from features in this repository inside an Eclipse instance"
 
       val bundleRuntimeClasspath = project.bundleRuntimeClasspath
 
@@ -428,6 +430,28 @@ class RepositoryPlugin @Inject constructor(
         // Prepare run configuration before executing.
         prepareEclipseRunConfig()
       }
+    }
+  }
+
+  private fun configureCreateEclipseInstallationTask(
+    project: Project,
+    createRepositoryTask: TaskProvider<*>,
+    repositoryDir: File
+  ) {
+    project.tasks.register<EclipseCreateInstallation>("createEclipseInstallationForCurrentOsArch") {
+      group = "coronium"
+      description = "Create an Eclipse installation for the current operating system and architecture, including the features of this repository"
+
+      dependsOn(createRepositoryTask)
+      repositories.add("file:${repositoryDir.absolutePath}")
+
+      val repositoryFeatureArtifacts = project.repositoryFeatureArtifacts
+      dependsOn(repositoryFeatureArtifacts)
+      installUnits.addAll(project.provider {
+        repositoryFeatureArtifacts.resolvedConfiguration.resolvedArtifacts.map {
+          "${it.name}.feature.group"
+        }
+      })
     }
   }
 }
