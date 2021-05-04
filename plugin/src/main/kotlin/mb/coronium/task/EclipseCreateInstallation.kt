@@ -16,25 +16,25 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 open class EclipseCreateInstallation : JavaExec() {
-  @Input
+  @get:Input
   val repositories: ListProperty<String> = project.objects.listProperty()
 
-  @Input
+  @get:Input
   val installUnits: ListProperty<String> = project.objects.listProperty()
 
-  @OutputDirectory
+  @get:OutputDirectory
   val destination: Property<Path> = project.objects.property()
 
-  @Input
+  @get:Input
   val applicationName: Property<String> = project.objects.property()
 
-  @Input
+  @get:Input
   val os: Property<EclipseOs> = project.objects.property()
 
-  @Input
+  @get:Input
   val arch: Property<EclipseArch> = project.objects.property()
 
-  @OutputDirectory
+
   private val finalDestination: Provider<Path> = destination.flatMap { destination ->
     os.map { os ->
       if(os == EclipseOs.OSX) {
