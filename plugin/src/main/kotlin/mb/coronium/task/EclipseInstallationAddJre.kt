@@ -33,10 +33,10 @@ open class EclipseInstallationAddJre : DefaultTask() {
 
 
   @get:Input
-  val os: Property<Os> = project.objects.property()
+  val os: Provider<Os> = createTask.flatMap { it.flatMap { it.os } }
 
   @get:Input
-  val arch: Property<Arch> = project.objects.property()
+  val arch: Provider<Arch> = createTask.flatMap { it.flatMap { it.arch } }
 
 
   @get:Input
@@ -63,8 +63,6 @@ open class EclipseInstallationAddJre : DefaultTask() {
 
 
   init {
-    os.convention(Os.current())
-    arch.convention(Arch.current())
     jreVersion.convention("11.0.11+9")
     jreDownloadUrl.convention(os.flatMap { os ->
       arch.flatMap { arch ->
@@ -88,8 +86,6 @@ open class EclipseInstallationAddJre : DefaultTask() {
 
     // Download and unarchive JRE
     val jreCacheDir = MavenizePlugin.mavenizeDir.resolve("jre_cache")
-    os.finalizeValue()
-    arch.finalizeValue()
     jreDownloadUrl.finalizeValue()
     val (jreDir, _) = downloadAndUnarchive(jreDownloadUrl.get(), jreCacheDir, false, GradleLog(project.logger))
 

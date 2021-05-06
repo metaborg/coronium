@@ -6,6 +6,9 @@ import java.nio.file.Paths
 
 enum class Os : Serializable {
   Windows {
+    override val validArchs = listOf(Arch.X86_32, Arch.X86_64)
+    override val displayName = "Windows"
+
     override val eclipseDownloadUrlArchiveSuffix = "win32"
     override val eclipseDownloadUrlArchiveExtension = "zip"
     override val eclipsePluginsDir = Paths.get("eclipse", "plugins")
@@ -25,6 +28,9 @@ enum class Os : Serializable {
     override val jreDownloadUrlArchiveExtension = "zip"
   },
   Linux {
+    override val validArchs = listOf(Arch.X86_64)
+    override val displayName = "Linux"
+
     override val eclipseDownloadUrlArchiveSuffix = "linux-gtk"
     override val eclipseDownloadUrlArchiveExtension = "tar.gz"
     override val eclipsePluginsDir = Paths.get("eclipse", "plugins")
@@ -41,6 +47,9 @@ enum class Os : Serializable {
     override val jreDownloadUrlArchiveExtension = "gz"
   },
   OSX {
+    override val validArchs = listOf(Arch.X86_64)
+    override val displayName = "MacOSX"
+
     override val eclipseDownloadUrlArchiveSuffix = "macosx-cocoa"
     override val eclipseDownloadUrlArchiveExtension = "dmg"
     override val eclipsePluginsDir = Paths.get("Eclipse.app", "Contents", "Eclipse", "plugins")
@@ -56,6 +65,9 @@ enum class Os : Serializable {
     override val jreDownloadUrlArchiveSuffix = "macosx"
     override val jreDownloadUrlArchiveExtension = "gz"
   };
+
+  abstract val validArchs: Iterable<Arch>
+  abstract val displayName: String
 
   abstract val eclipseDownloadUrlArchiveSuffix: String
   abstract val eclipseDownloadUrlArchiveExtension: String

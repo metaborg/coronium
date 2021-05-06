@@ -4,6 +4,8 @@ import java.io.Serializable
 
 enum class Arch : Serializable {
   X86_32 {
+    override val displayName = "X86"
+
     override val appDownloadUrlArchiveSuffix = ""
 
     override val p2ArchName = "x86"
@@ -11,12 +13,16 @@ enum class Arch : Serializable {
     override val jreDownloadUrlArchiveSuffix = "i586"
   },
   X86_64 {
+    override val displayName = "X64"
+
     override val appDownloadUrlArchiveSuffix = "-x86_64"
 
     override val p2ArchName = "x86_64"
 
     override val jreDownloadUrlArchiveSuffix = "x64"
   };
+
+  abstract val displayName: String
 
   abstract val appDownloadUrlArchiveSuffix: String
 
