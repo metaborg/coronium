@@ -66,7 +66,7 @@ open class EclipseRun : JavaExec() {
     mavenizedExtension.finalizeOsArch()
     val mavenized = project.lazilyMavenize()
 
-    args(mavenizedExtension.os.get().extraJvmArgs)
+    args(mavenizedExtension.os.get().eclipseExtraJvmArgs)
     args(
       "-Dosgi.sharedConfiguration.area=.",
       "-Dosgi.sharedConfiguration.area.readOnly=true",

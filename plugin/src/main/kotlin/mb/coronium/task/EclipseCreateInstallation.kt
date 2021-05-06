@@ -1,9 +1,9 @@
 package mb.coronium.task
 
-import mb.coronium.plugin.internal.EclipseArch
-import mb.coronium.plugin.internal.EclipseOs
 import mb.coronium.plugin.internal.lazilyMavenize
 import mb.coronium.plugin.internal.mavenizeExtension
+import mb.coronium.util.Arch
+import mb.coronium.util.Os
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
@@ -22,6 +22,9 @@ open class EclipseCreateInstallation : JavaExec() {
   @get:Input
   val installUnits: ListProperty<String> = project.objects.listProperty()
 
+  @get:Input
+  val buildDirectoryName: Property<String> = project.objects.property()
+
   @get:OutputDirectory
   val destination: Property<Path> = project.objects.property()
 
@@ -29,15 +32,15 @@ open class EclipseCreateInstallation : JavaExec() {
   val applicationName: Property<String> = project.objects.property()
 
   @get:Input
-  val os: Property<EclipseOs> = project.objects.property()
+  val os: Property<Os> = project.objects.property()
 
   @get:Input
-  val arch: Property<EclipseArch> = project.objects.property()
+  val arch: Property<Arch> = project.objects.property()
 
 
   @get:Internal
   val applicationDirectoryName: Provider<String> = os.map { os ->
-    if(os == EclipseOs.OSX) {
+    if(os == Os.OSX) {
       "${applicationName.get()}.app"
     } else {
       applicationName.get()
@@ -70,10 +73,11 @@ open class EclipseCreateInstallation : JavaExec() {
       "org.eclipse.jgit.feature.group",
       "org.eclipse.buildship.feature.group"
     ))
-    destination.convention(project.buildDir.toPath().resolve("eclipseInstallation"))
+    buildDirectoryName.convention(os.flatMap { os -> arch.map { arch -> "eclipse-${os.p2OsName}-${arch.p2ArchName}" } })
+    destination.convention(buildDirectoryName.map { buildDirectoryName -> project.buildDir.toPath().resolve(buildDirectoryName) })
     applicationName.convention("Eclipse")
-    os.convention(EclipseOs.current())
-    arch.convention(EclipseArch.current())
+    os.convention(Os.current())
+    arch.convention(Arch.current())
   }
 
   @TaskAction

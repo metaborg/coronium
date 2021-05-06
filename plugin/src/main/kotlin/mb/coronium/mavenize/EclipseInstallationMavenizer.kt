@@ -1,9 +1,15 @@
 package mb.coronium.mavenize
 
-import mb.coronium.model.eclipse.*
+import mb.coronium.model.eclipse.Bundle
+import mb.coronium.model.eclipse.BundleCoordinates
+import mb.coronium.model.eclipse.BundleDependency
+import mb.coronium.model.eclipse.BundleVersion
+import mb.coronium.model.eclipse.BundleVersionOrRange
+import mb.coronium.model.eclipse.BundleVersionRange
 import mb.coronium.util.Log
 import mb.coronium.util.TempDir
 import mb.coronium.util.deleteNonEmptyDirectoryIfExists
+import mb.coronium.util.downloadAndUnarchive
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
@@ -25,14 +31,14 @@ fun mavenizeEclipseInstallation(
   val archiveCacheDir = mavenizeDir.resolve("eclipse_archive_cache")
 
   // Retrieve an Eclipse installation.
-  val (installationDir, wasUnpacked) = retrieveEclipseInstallation(installationArchiveUrl, archiveCacheDir, forceDownload, log)
+  val (installationDir, wasUnarchived) = downloadAndUnarchive(installationArchiveUrl, archiveCacheDir, forceDownload, log)
   val installationPluginsDir = installationDir.resolve(installationPluginsDirRelative)
 
   // Check if repository is already installed.
   val isInstalled = Files.isDirectory(repoGroupIdDir)
 
   // Install bundles if needed.
-  if(wasUnpacked || !isInstalled || forceInstall) {
+  if(wasUnarchived || !isInstalled || forceInstall) {
     // Delete repository entries for the group ID.
     deleteNonEmptyDirectoryIfExists(repoGroupIdDir)
 

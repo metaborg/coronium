@@ -1,18 +1,15 @@
-package mb.coronium.mavenize
+package mb.coronium.util
 
 import mb.coronium.util.*
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Retrieves an Eclipse installation and unpacks it.
- */
-fun retrieveEclipseInstallation(urlStr: String, cacheDir: Path, forceDownload: Boolean, log: Log): EclipseInstallation {
+fun downloadAndUnarchive(urlStr: String, cacheDir: Path, forceDownload: Boolean, log: Log): Unarchived {
   val filename = run {
     val index = urlStr.lastIndexOf('/')
     if(index == -1) {
-      error("Cannot retrieve Eclipse plugin bundles for URL $urlStr, it has no filename")
+      error("Cannot download and unarchive '$urlStr', it has no filename")
     }
     urlStr.substring(index + 1)
   }
@@ -31,9 +28,9 @@ fun retrieveEclipseInstallation(urlStr: String, cacheDir: Path, forceDownload: B
       deleteNonEmptyDirectoryIfExists(unpackDir)
     }
     log.progress("Unpacking $archiveFile into $unpackDir")
-    unpack(archiveFile, unpackDir, log)
+    unarchive(archiveFile, unpackDir, log)
   }
-  return EclipseInstallation(unpackDir, shouldUnpack)
+  return Unarchived(unpackDir, shouldUnpack)
 }
 
-data class EclipseInstallation(val unpackDir: Path, val wasUnpacked: Boolean)
+data class Unarchived(val unarchiveDir: Path, val wasUnarchived: Boolean)

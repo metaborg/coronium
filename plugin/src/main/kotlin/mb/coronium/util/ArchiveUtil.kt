@@ -4,20 +4,25 @@ import org.apache.commons.compress.archivers.ArchiveStreamFactory
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import java.io.IOException
 import java.io.InputStream
-import java.nio.file.*
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
-import java.util.jar.*
+import java.util.jar.Attributes
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
+import java.util.jar.Manifest
 
 /**
- * Unpacks archive from [archiveFile] into [unpackDirectory].
+ * Unarchives [archiveFile] into [unpackDirectory].
  */
-fun unpack(archiveFile: Path, unpackDirectory: Path, log: Log) {
+fun unarchive(archiveFile: Path, unpackDirectory: Path, log: Log) {
   val path = archiveFile.toString()
   when {
     path.endsWith(".dmg") -> unarchiveDmgApps(archiveFile, unpackDirectory)
     else -> Files.newInputStream(archiveFile).buffered().use { inputStream ->
       when {
-        path.endsWith(".tar.gz") -> {
+        path.endsWith(".tar.gz") || path.endsWith(".gz") -> {
           GzipCompressorInputStream(inputStream).buffered().use { compressorInputStream ->
             unarchive(compressorInputStream, unpackDirectory, log)
           }

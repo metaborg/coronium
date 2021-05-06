@@ -16,13 +16,15 @@ import mb.coronium.plugin.base.featureUsage
 import mb.coronium.plugin.base.repositoryArchive
 import mb.coronium.plugin.internal.MavenizePlugin
 import mb.coronium.plugin.internal.lazilyMavenize
+import mb.coronium.task.ArchiveEclipseInstallation
 import mb.coronium.task.EclipseCreateInstallation
+import mb.coronium.task.EclipseInstallationAddJre
 import mb.coronium.task.EclipseRun
 import mb.coronium.util.GradleLog
 import mb.coronium.util.TempDir
 import mb.coronium.util.packJar
 import mb.coronium.util.readManifestFromFile
-import mb.coronium.util.unpack
+import mb.coronium.util.unarchive
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -207,7 +209,7 @@ class RepositoryPlugin @Inject constructor(
             for(featureJarFile in featureJarFiles) {
               val fileName = featureJarFile.fileName
               val unpackTempDir = tempDir.createTempDir(fileName.toString())
-              unpack(featureJarFile, unpackTempDir, log)
+              unarchive(featureJarFile, unpackTempDir, log)
               val featureXmlFile = unpackTempDir.resolve("feature.xml")
               if(Files.isRegularFile(featureXmlFile)) {
                 val builder = Feature.Builder()
@@ -248,7 +250,7 @@ class RepositoryPlugin @Inject constructor(
             for(pluginJarFile in pluginJarFiles) {
               val fileName = pluginJarFile.fileName
               val unpackTempDir = tempDir.createTempDir(fileName.toString())
-              unpack(pluginJarFile, unpackTempDir, log)
+              unarchive(pluginJarFile, unpackTempDir, log)
               val manifestFile = unpackTempDir.resolve("META-INF/MANIFEST.MF")
               if(Files.isRegularFile(manifestFile)) {
                 val manifest = readManifestFromFile(manifestFile)
@@ -454,18 +456,22 @@ class RepositoryPlugin @Inject constructor(
       })
     }
 
-    project.tasks.register<Zip>("archiveEclipseInstallationForCurrentOsArch") {
+    project.tasks.register<ArchiveEclipseInstallation>("archiveEclipseInstallationForCurrentOsArch") {
       group = "coronium"
       description = "Archives an Eclipse installation for the current operating system and architecture, including the features of this repository"
+      initFromCreateTask(createTask)
+    }
 
-      dependsOn(createTask)
+    val createWithJreTask = project.tasks.register<EclipseInstallationAddJre>("createEclipseInstallationForCurrentOsArchWithJre") {
+      group = "coronium"
+      description = "Create an Eclipse installation with embedded JRE for the current operating system and architecture, including the features of this repository"
+      this.createTask.set(createTask)
+    }
 
-      archiveFileName.set(project.provider { "${createTask.get().applicationName.get()}.zip" })
-      destinationDirectory.set(project.buildDir.resolve("dist"))
-      from({ createTask.get().destination.get() })
-      doFirst {
-        include("${createTask.get().applicationDirectoryName.get()}/**")
-      }
+    project.tasks.register<ArchiveEclipseInstallation>("archiveEclipseInstallationForCurrentOsArchWithJre") {
+      group = "coronium"
+      description = "Archives an Eclipse installation with embedded JRE for the current operating system and architecture, including the features of this repository"
+      initFromAddJreTask(createWithJreTask)
     }
   }
 }
