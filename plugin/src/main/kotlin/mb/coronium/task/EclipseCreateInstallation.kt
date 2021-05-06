@@ -8,11 +8,11 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.*
-import java.nio.file.Files
 import java.nio.file.Path
 
 open class EclipseCreateInstallation : JavaExec() {
@@ -35,6 +35,7 @@ open class EclipseCreateInstallation : JavaExec() {
   val arch: Property<EclipseArch> = project.objects.property()
 
 
+  @get:Internal
   val applicationDirectoryName: Provider<String> = os.map { os ->
     if(os == EclipseOs.OSX) {
       "${applicationName.get()}.app"
@@ -43,6 +44,7 @@ open class EclipseCreateInstallation : JavaExec() {
     }
   }
 
+  @get:Internal
   val finalDestination: Provider<Path> = destination.flatMap { destination ->
     applicationDirectoryName.map { applicationDirectoryName ->
       destination.resolve(applicationDirectoryName)
