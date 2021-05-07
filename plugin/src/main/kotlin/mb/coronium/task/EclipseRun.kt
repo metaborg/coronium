@@ -16,6 +16,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
+@Suppress("UnstableApiUsage")
 open class EclipseRun : JavaExec() {
   private val eclipseRunConfigFile = project.buildDir.toPath().resolve("eclipseRun/config.ini")
 

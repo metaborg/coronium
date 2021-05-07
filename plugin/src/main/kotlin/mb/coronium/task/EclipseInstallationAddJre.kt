@@ -18,18 +18,27 @@ import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.*
 import java.nio.file.Path
 
+@Suppress("UnstableApiUsage")
 open class EclipseInstallationAddJre : DefaultTask() {
   @get:Internal
   val createTask: Property<TaskProvider<EclipseCreateInstallation>> = project.objects.property()
 
+
+  @get:Input
+  val jreVersion: Property<String> = project.objects.property()
+
+  @get:Input
+  val jreDownloadUrl: Property<String> = project.objects.property()
+
+
   @get:InputDirectory
-  val sourceDir: Provider<Path> = createTask.flatMap { it.flatMap { it.destination } }
+  val copySrcDir: Provider<Path> = createTask.flatMap { it.flatMap { it.destination } }
 
   @get:OutputDirectory
-  val destDir: Provider<Path> = createTask.flatMap { it.flatMap { it.buildDirectoryName.map { project.buildDir.resolve("$it-jre").toPath() } } }
+  val copyDestDir: Provider<Path> = createTask.flatMap { it.flatMap { it.buildDirName.map { project.buildDir.resolve("$it-jre").toPath() } } }
 
   @get:Internal
-  val destAppDir: Provider<Path> = destDir.flatMap { destDir -> createTask.flatMap { it.flatMap { it.applicationDirectoryName.map { destDir.resolve(it) } } } }
+  val copyDestAppDir: Provider<Path> = copyDestDir.flatMap { destDir -> createTask.flatMap { it.flatMap { it.appDirName.map { destDir.resolve(it) } } } }
 
 
   @get:Input
@@ -40,29 +49,25 @@ open class EclipseInstallationAddJre : DefaultTask() {
 
 
   @get:Input
-  val jreVersion: Property<String> = project.objects.property()
-
-  @get:Input
   val jreDownloadVersion: Provider<String> = jreVersion.map { it.replace('+', '-') }
 
   @get:Input
-  val jreDownloadUrl: Property<String> = project.objects.property()
+  val dirNameInJreArchive: Provider<String> = jreVersion.map { "jdk-$it-jre" }
 
   @get:Input
-  val dirNameInJre: Provider<String> = jreVersion.map { "jdk-$it-jre" }
-
-  @get:Input
-  val jreDestinationRelativePath: Provider<String> = project.provider { "jre" }
+  val jreDestRelativePath: Provider<String> = project.provider { "jre" }
 
   @get:OutputDirectory
-  val jreDestinationDir: Provider<Path> = destAppDir.flatMap { destAppDir -> jreDestinationRelativePath.map { destAppDir.resolve(it) } }
+  val jreDestDir: Provider<Path> = copyDestAppDir.flatMap { destAppDir -> jreDestRelativePath.map { destAppDir.resolve(it) } }
 
 
   @get:OutputFile
-  val iniFile: Provider<Path> = destAppDir.flatMap { destAppDir -> os.map { os -> destAppDir.resolve(os.installationIniRelativePath) } }
+  val iniFile: Provider<Path> = copyDestAppDir.flatMap { destAppDir -> os.map { destAppDir.resolve(it.installationIniRelativePath) } }
 
 
   init {
+    dependsOn(createTask)
+
     jreVersion.convention("11.0.11+9")
     jreDownloadUrl.convention(os.flatMap { os ->
       arch.flatMap { arch ->
@@ -71,8 +76,6 @@ open class EclipseInstallationAddJre : DefaultTask() {
         }
       }
     })
-
-    dependsOn(createTask)
   }
 
   @TaskAction
@@ -80,8 +83,8 @@ open class EclipseInstallationAddJre : DefaultTask() {
     // Sync Eclipse installation into separate directory
     createTask.finalizeValue()
     project.sync {
-      from(sourceDir)
-      into(destDir)
+      from(copySrcDir)
+      into(copyDestDir)
     }
 
     // Download and unarchive JRE
@@ -91,8 +94,8 @@ open class EclipseInstallationAddJre : DefaultTask() {
 
     // Sync JRE into Eclipse installation
     project.sync {
-      from(dirNameInJre.map { jreDir.resolve(it) })
-      into(jreDestinationDir)
+      from(dirNameInJreArchive.map { jreDir.resolve(it) })
+      into(jreDestDir)
     }
 
     // Modify Eclipse ini VM argument

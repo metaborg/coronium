@@ -10,11 +10,13 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.*
 import java.nio.file.Path
 
+@Suppress("UnstableApiUsage")
 open class EclipseCreateInstallation : JavaExec() {
   @get:Input
   val repositories: ListProperty<String> = project.objects.listProperty()
@@ -23,13 +25,13 @@ open class EclipseCreateInstallation : JavaExec() {
   val installUnits: ListProperty<String> = project.objects.listProperty()
 
   @get:Input
-  val buildDirectoryName: Property<String> = project.objects.property()
+  val buildDirName: Property<String> = project.objects.property()
 
   @get:OutputDirectory
   val destination: Property<Path> = project.objects.property()
 
   @get:Input
-  val applicationName: Property<String> = project.objects.property()
+  val appName: Property<String> = project.objects.property()
 
   @get:Input
   val os: Property<Os> = project.objects.property()
@@ -38,21 +40,42 @@ open class EclipseCreateInstallation : JavaExec() {
   val arch: Property<Arch> = project.objects.property()
 
 
+  @get:Input
+  @get:Optional
+  val iniRequiredJavaVersion: Property<String> = project.objects.property()
+
+  @get:Input
+  @get:Optional
+  val iniStackSize: Property<String> = project.objects.property()
+
+  @get:Input
+  @get:Optional
+  val iniHeapSize: Property<String> = project.objects.property()
+
+  @get:Input
+  @get:Optional
+  val iniMaxHeapSize: Property<String> = project.objects.property()
+
+
   @get:Internal
-  val applicationDirectoryName: Provider<String> = os.map { os ->
+  val appDirName: Provider<String> = os.map { os ->
     if(os == Os.OSX) {
-      "${applicationName.get()}.app"
+      "${appName.get()}.app"
     } else {
-      applicationName.get()
+      appName.get()
     }
   }
 
   @get:Internal
   val finalDestination: Provider<Path> = destination.flatMap { destination ->
-    applicationDirectoryName.map { applicationDirectoryName ->
+    appDirName.map { applicationDirectoryName ->
       destination.resolve(applicationDirectoryName)
     }
   }
+
+  @get:Internal
+  val iniFile: Provider<Path> = finalDestination.flatMap { finalDestination -> os.map { os -> finalDestination.resolve(os.installationIniRelativePath) } }
+
 
   init {
     main = "-jar"
@@ -73,11 +96,15 @@ open class EclipseCreateInstallation : JavaExec() {
       "org.eclipse.jgit.feature.group",
       "org.eclipse.buildship.feature.group"
     ))
-    buildDirectoryName.convention(os.flatMap { os -> arch.map { arch -> "eclipse-${os.p2OsName}-${arch.p2ArchName}" } })
-    destination.convention(buildDirectoryName.map { buildDirectoryName -> project.buildDir.toPath().resolve(buildDirectoryName) })
-    applicationName.convention("Eclipse")
+    buildDirName.convention(os.flatMap { os -> arch.map { arch -> "eclipse-${os.p2OsName}-${arch.p2ArchName}" } })
+    destination.convention(buildDirName.map { buildDirectoryName -> project.buildDir.toPath().resolve(buildDirectoryName) })
+    appName.convention("Eclipse")
     os.convention(Os.current())
     arch.convention(Arch.current())
+
+    iniRequiredJavaVersion.convention("11")
+    iniStackSize.convention("16M")
+    iniMaxHeapSize.convention("4G")
   }
 
   @TaskAction
@@ -96,7 +123,7 @@ open class EclipseCreateInstallation : JavaExec() {
     installUnits.get().forEach { args("-installIU", it) }
     args("-tag", "InitialState")
     destination.finalizeValue()
-    applicationName.finalizeValue()
+    appName.finalizeValue()
     args("-destination", finalDestination.get())
     finalDestination.get().toFile().deleteRecursively()
     args("-profile", "SDKProfile")
@@ -109,5 +136,44 @@ open class EclipseCreateInstallation : JavaExec() {
     args("-roaming")
 
     super.exec()
+
+    // Improve INI file.
+    val iniFile = iniFile.get().toFile()
+    var iniFileText = iniFile.readText()
+    // Remove small fonts, as they are too small.
+    iniFileText = iniFileText.replace(Regex("""-Dorg\.eclipse\.swt\.internal\.carbon\.smallFonts"""), "")
+    // Remove multiple `--add-modules=ALL-SYSTEM` arguments. Will be added back once.
+    iniFileText = iniFileText.replace(Regex("""--add-modules=ALL-SYSTEM"""), "")
+    // Remove multiple `-XstartOnFirstThread` arguments. Will be added back only for macOS.
+    iniFileText = iniFileText.replace(Regex("""-XstartOnFirstThread"""), "")
+    // Remove multiple `-Dosgi.requiredJavaVersion=11` arguments. Will be added back with better defaults.
+    iniFileText = iniFileText.replace(Regex("""-Dosgi.requiredJavaVersion=[0-9.]+"""), "")
+    // Remove `-Xms -Xss -Xmx` arguments. Will be added back with better defaults.
+    iniFileText = iniFileText.replace(Regex("""-X(ms|ss|mx)[0-9]+[gGmMkK]"""), "")
+
+    iniFileText += "--add-modules=ALL-SYSTEM\n"
+    if(os.get() == Os.OSX) {
+      iniFileText += "-XstartOnFirstThread\n"
+    }
+    iniRequiredJavaVersion.finalizeValue()
+    if(iniRequiredJavaVersion.isPresent) {
+      iniFileText += "-Dosgi.requiredJavaVersion=${iniRequiredJavaVersion.get()}\n"
+    }
+    iniStackSize.finalizeValue()
+    if(iniStackSize.isPresent) {
+      iniFileText += "-Xss${iniStackSize.get()}\n"
+    }
+    iniHeapSize.finalizeValue()
+    if(iniHeapSize.isPresent) {
+      iniFileText += "-Xms${iniHeapSize.get()}\n"
+    }
+    iniMaxHeapSize.finalizeValue()
+    if(iniMaxHeapSize.isPresent) {
+      iniFileText += "-Xmx${iniMaxHeapSize.get()}\n"
+    }
+
+    iniFileText = iniFileText.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n") + "\n"
+
+    iniFile.writeText(iniFileText)
   }
 }

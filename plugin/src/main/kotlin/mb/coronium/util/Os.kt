@@ -6,7 +6,7 @@ import java.nio.file.Paths
 
 enum class Os : Serializable {
   Windows {
-    override val validArchs = listOf(Arch.X86_32, Arch.X86_64)
+    override val validArchs = listOf(Arch.X86_64)
     override val displayName = "Windows"
 
     override val eclipseDownloadUrlArchiveSuffix = "win32"
