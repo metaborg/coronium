@@ -19,23 +19,23 @@ import org.gradle.kotlin.dsl.*
 import java.nio.file.Path
 
 @Suppress("UnstableApiUsage")
-open class EclipseInstallationAddJre : DefaultTask() {
+open class EclipseInstallationAddJvm : DefaultTask() {
   @get:Internal
   val createTask: Property<TaskProvider<EclipseCreateInstallation>> = project.objects.property()
 
 
   @get:Input
-  val jreVersion: Property<String> = project.objects.property()
+  val jvmVersion: Property<String> = project.objects.property()
 
   @get:Input
-  val jreDownloadUrl: Property<String> = project.objects.property()
+  val jvmDownloadUrl: Property<String> = project.objects.property()
 
 
   @get:InputDirectory
   val copySrcDir: Provider<Path> = createTask.flatMap { it.flatMap { it.destination } }
 
   @get:OutputDirectory
-  val copyDestDir: Provider<Path> = createTask.flatMap { it.flatMap { it.buildDirName.map { project.buildDir.resolve("$it-jre").toPath() } } }
+  val copyDestDir: Provider<Path> = createTask.flatMap { it.flatMap { it.buildDirName.map { project.buildDir.resolve("$it-jvm").toPath() } } }
 
   @get:Internal
   val copyDestAppDir: Provider<Path> = copyDestDir.flatMap { destDir -> createTask.flatMap { it.flatMap { it.appDirName.map { destDir.resolve(it) } } } }
@@ -49,16 +49,16 @@ open class EclipseInstallationAddJre : DefaultTask() {
 
 
   @get:Input
-  val jreDownloadVersion: Provider<String> = jreVersion.map { it.replace('+', '-') }
+  val jvmDownloadVersion: Provider<String> = jvmVersion.map { it.replace('+', '-') }
 
   @get:Input
-  val dirNameInJreArchive: Provider<String> = jreVersion.map { "jdk-$it-jre" }
+  val dirNameInJvmArchive: Provider<String> = jvmVersion.map { "jdk-$it" }
 
   @get:Input
-  val jreDestRelativePath: Provider<String> = project.provider { "jre" }
+  val jvmDestRelativePath: Provider<String> = project.provider { "jvm" }
 
   @get:OutputDirectory
-  val jreDestDir: Provider<Path> = copyDestAppDir.flatMap { destAppDir -> jreDestRelativePath.map { destAppDir.resolve(it) } }
+  val jvmDestDir: Provider<Path> = copyDestAppDir.flatMap { destAppDir -> jvmDestRelativePath.map { destAppDir.resolve(it) } }
 
 
   @get:OutputFile
@@ -68,11 +68,11 @@ open class EclipseInstallationAddJre : DefaultTask() {
   init {
     dependsOn(createTask)
 
-    jreVersion.convention("11.0.11+9")
-    jreDownloadUrl.convention(os.flatMap { os ->
+    jvmVersion.convention("11.0.11+9")
+    jvmDownloadUrl.convention(os.flatMap { os ->
       arch.flatMap { arch ->
-        jreDownloadVersion.map { jreDownloadVersion ->
-          "https://artifacts.metaborg.org/content/repositories/releases/net/adoptopenjdk/jre/$jreDownloadVersion/jre-$jreDownloadVersion-${os.jreDownloadUrlArchiveSuffix}-${arch.jreDownloadUrlArchiveSuffix}.${os.jreDownloadUrlArchiveExtension}"
+        jvmDownloadVersion.map { version ->
+          "https://artifacts.metaborg.org/content/repositories/releases/net/adoptopenjdk/jdk/$version/jdk-$version-${os.jvmDownloadUrlArchiveSuffix}-${arch.jreDownloadUrlArchiveSuffix}.${os.jvmDownloadUrlArchiveExtension}"
         }
       }
     })
@@ -88,21 +88,21 @@ open class EclipseInstallationAddJre : DefaultTask() {
     }
 
     // Download and unarchive JRE
-    val jreCacheDir = MavenizePlugin.mavenizeDir.resolve("jre_cache")
-    jreDownloadUrl.finalizeValue()
-    val (jreDir, _) = downloadAndUnarchive(jreDownloadUrl.get(), jreCacheDir, false, GradleLog(project.logger))
+    val jvmCacheDir = MavenizePlugin.mavenizeDir.resolve("jvm_cache")
+    jvmDownloadUrl.finalizeValue()
+    val (jvmDir, _) = downloadAndUnarchive(jvmDownloadUrl.get(), jvmCacheDir, false, GradleLog(project.logger))
 
     // Sync JRE into Eclipse installation
     project.sync {
-      from(dirNameInJreArchive.map { jreDir.resolve(it) })
-      into(jreDestDir)
+      from(dirNameInJvmArchive.map { jvmDir.resolve(it) })
+      into(jvmDestDir)
     }
 
     // Modify Eclipse ini VM argument
     val iniFile = iniFile.get().toFile()
     var iniFileText = iniFile.readText()
     iniFileText = iniFileText.replace(Regex("""-vm\n.+\n""", RegexOption.MULTILINE), "")
-    iniFileText = "-vm\n${os.get().installationJreRelativePath(arch.get())}\n$iniFileText"
+    iniFileText = "-vm\n${os.get().installationJvmRelativePath(arch.get())}\n$iniFileText"
     iniFile.writeText(iniFileText)
   }
 }

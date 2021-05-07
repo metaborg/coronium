@@ -293,10 +293,10 @@ Eclipse installations can be generated from repositories.
 On an Eclipse repository project, run the `createEclipseInstallation` task to generate an Eclipse installation that includes the features and bundles of the repository.
 The generated Eclipse installation will be located in the `build/eclipse-<os>-<arch>` directory.
 Running `archiveEclipseInstallation` will additionally create an archive of the installation at `build/dist/Eclipse-<os>-<arch>.zip`.
-Finally, running `createEclipseInstallationWithJre` and/or `archiveEclipseInstallationWithJre` will create/archive an Eclipse installation with an embedded JRE, so that no JRE needs to be installed to run that Eclipse installation.
-These are located at `build/eclipse-<os>-<arch>-jre` and `build/dist/Eclipse-<os>-<arch>-jre.zip`
+Finally, running `createEclipseInstallationWithJvm` and/or `archiveEclipseInstallationWithJvm` will create/archive an Eclipse installation with an embedded JVM, so that no JVM needs to be installed on the system to run that Eclipse installation.
+These are located at `build/eclipse-<os>-<arch>-jvm` and `build/dist/Eclipse-<os>-<arch>-jvm.zip`
 
-To generate Eclipse installations for all operating system and architecture combinations for distribution purposes, run the `archiveEclipseInstallations` and `archiveEclipseInstallationsWithJre` tasks.
+To generate Eclipse installations for all operating system and architecture combinations for distribution purposes, run the `archiveEclipseInstallations` and `archiveEclipseInstallationsWithJvm` tasks.
 
-Currently, these tasks are hardcoded to generate Eclipse 2021-03 for Java developers instances, and JREs are hardcoded to AdoptOpenJDK 11.0.11+9 JREs with HotSpot.
+Currently, these tasks are hardcoded to generate Eclipse 2021-03 for Java developers instances, and JVMs are hardcoded to AdoptOpenJDK 11.0.11+9 JDKs with HotSpot.
 This will be made configurable in the future.

@@ -18,7 +18,7 @@ import mb.coronium.plugin.internal.MavenizePlugin
 import mb.coronium.plugin.internal.lazilyMavenize
 import mb.coronium.task.ArchiveEclipseInstallation
 import mb.coronium.task.EclipseCreateInstallation
-import mb.coronium.task.EclipseInstallationAddJre
+import mb.coronium.task.EclipseInstallationAddJvm
 import mb.coronium.task.EclipseRun
 import mb.coronium.util.Arch
 import mb.coronium.util.GradleLog
@@ -447,8 +447,8 @@ class RepositoryPlugin @Inject constructor(
 
     val createTaskPerOsArch = mutableMapOf<OsArch, TaskProvider<*>>()
     val archiveTaskPerOsArch = mutableMapOf<OsArch, TaskProvider<*>>()
-    val createWithJreTaskPerOsArch = mutableMapOf<OsArch, TaskProvider<*>>()
-    val archiveWithJreTaskPerOsArch = mutableMapOf<OsArch, TaskProvider<*>>()
+    val createWithJvmTaskPerOsArch = mutableMapOf<OsArch, TaskProvider<*>>()
+    val archiveWithJvmTaskPerOsArch = mutableMapOf<OsArch, TaskProvider<*>>()
     for(os in Os.values()) {
       for(arch in os.validArchs) {
         val osArch = OsArch(os, arch)
@@ -481,19 +481,19 @@ class RepositoryPlugin @Inject constructor(
         }
         archiveTaskPerOsArch[osArch] = archiveTask
 
-        val createWithJreTask = project.tasks.register<EclipseInstallationAddJre>("createEclipseInstallationWithJreFor$taskSuffix") {
+        val createWithJreTask = project.tasks.register<EclipseInstallationAddJvm>("createEclipseInstallationWithJvmFor$taskSuffix") {
           group = "coronium"
-          description = "Create an Eclipse installation with embedded JRE for ${os.displayName} ${arch.displayName}, including the features of this repository"
+          description = "Create an Eclipse installation with embedded JVM for ${os.displayName} ${arch.displayName}, including the features of this repository"
           this.createTask.set(createTask)
         }
-        createWithJreTaskPerOsArch[osArch] = createWithJreTask
+        createWithJvmTaskPerOsArch[osArch] = createWithJreTask
 
-        val archiveWithJreTask = project.tasks.register<ArchiveEclipseInstallation>("archiveEclipseInstallationWithJreFor$taskSuffix") {
+        val archiveWithJreTask = project.tasks.register<ArchiveEclipseInstallation>("archiveEclipseInstallationWithJvmFor$taskSuffix") {
           group = "coronium"
-          description = "Archives an Eclipse installation with embedded JRE for ${os.displayName} ${arch.displayName}, including the features of this repository"
-          initFromAddJreTask(createWithJreTask)
+          description = "Archives an Eclipse installation with embedded JVM ${os.displayName} ${arch.displayName}, including the features of this repository"
+          initFromAddJvmTask(createWithJreTask)
         }
-        archiveWithJreTaskPerOsArch[osArch] = archiveWithJreTask
+        archiveWithJvmTaskPerOsArch[osArch] = archiveWithJreTask
       }
     }
 
@@ -509,17 +509,17 @@ class RepositoryPlugin @Inject constructor(
       dependsOn(createAllTask)
       archiveTaskPerOsArch.forEach { dependsOn(it.value) }
     }
-    val createAllWithJreTask = project.tasks.register("createEclipseInstallationsWithJre") {
+    val createAllWithJreTask = project.tasks.register("createEclipseInstallationsWithJvm") {
       group = "coronium"
-      description = "Creates Eclipse installations with embedded JRE for all valid OS/architectures, including the features of this repository"
+      description = "Creates Eclipse installations with embedded JVM for all valid OS/architectures, including the features of this repository"
       dependsOn(createAllTask)
-      createWithJreTaskPerOsArch.forEach { dependsOn(it.value) }
+      createWithJvmTaskPerOsArch.forEach { dependsOn(it.value) }
     }
-    project.tasks.register("archiveEclipseInstallationsWithJre") {
+    project.tasks.register("archiveEclipseInstallationsWithJvm") {
       group = "coronium"
-      description = "Archives Eclipse installations with embedded JRE for all valid OS/architectures, including the features of this repository"
+      description = "Archives Eclipse installations with embedded JVM for all valid OS/architectures, including the features of this repository"
       dependsOn(createAllWithJreTask)
-      archiveWithJreTaskPerOsArch.forEach { dependsOn(it.value) }
+      archiveWithJvmTaskPerOsArch.forEach { dependsOn(it.value) }
     }
 
     // Register tasks that run create/archive tasks for the current OS/architecture.
@@ -535,16 +535,16 @@ class RepositoryPlugin @Inject constructor(
       dependsOn(createCurrentTask)
       dependsOn(archiveTaskPerOsArch[currentOsArch])
     }
-    val createCurrentWithJreTask = project.tasks.register("createEclipseInstallationWithJre") {
+    val createCurrentWithJreTask = project.tasks.register("createEclipseInstallationWithJvm") {
       group = "coronium"
-      description = "Creates an Eclipse installation with embedded JRE for the current OS/architecture, including the features of this repository"
-      dependsOn(createWithJreTaskPerOsArch[currentOsArch])
+      description = "Creates an Eclipse installation with embedded JVM for the current OS/architecture, including the features of this repository"
+      dependsOn(createWithJvmTaskPerOsArch[currentOsArch])
     }
-    project.tasks.register("archiveEclipseInstallationWithJre") {
+    project.tasks.register("archiveEclipseInstallationWithJvm") {
       group = "coronium"
-      description = "Archives an Eclipse installation with embedded JRE for the current OS/architecture, including the features of this repository"
+      description = "Archives an Eclipse installation with embedded JVM for the current OS/architecture, including the features of this repository"
       dependsOn(createCurrentWithJreTask)
-      dependsOn(archiveWithJreTaskPerOsArch[currentOsArch])
+      dependsOn(archiveWithJvmTaskPerOsArch[currentOsArch])
     }
   }
 }

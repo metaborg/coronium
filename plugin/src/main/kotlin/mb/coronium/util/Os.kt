@@ -19,13 +19,13 @@ enum class Os : Serializable {
     override val p2WsName = "win32"
 
     override val installationIniRelativePath = "eclipse.ini"
-    override fun installationJreRelativePath(arch: Arch) = when(arch) {
-      Arch.X86_32 -> """jre\bin\client\jvm.dll"""
-      Arch.X86_64 -> """jre\bin\server\jvm.dll"""
+    override fun installationJvmRelativePath(arch: Arch) = when(arch) {
+      Arch.X86_32 -> """jvm\bin\client\jvm.dll"""
+      Arch.X86_64 -> """jvm\bin\server\jvm.dll"""
     }
 
-    override val jreDownloadUrlArchiveSuffix = "windows"
-    override val jreDownloadUrlArchiveExtension = "zip"
+    override val jvmDownloadUrlArchiveSuffix = "windows"
+    override val jvmDownloadUrlArchiveExtension = "zip"
   },
   Linux {
     override val validArchs = listOf(Arch.X86_64)
@@ -41,10 +41,10 @@ enum class Os : Serializable {
     override val p2WsName = "gtk"
 
     override val installationIniRelativePath = "eclipse.ini"
-    override fun installationJreRelativePath(arch: Arch) = "jre/bin/java"
+    override fun installationJvmRelativePath(arch: Arch) = "jvm/bin/java"
 
-    override val jreDownloadUrlArchiveSuffix = "linux"
-    override val jreDownloadUrlArchiveExtension = "gz"
+    override val jvmDownloadUrlArchiveSuffix = "linux"
+    override val jvmDownloadUrlArchiveExtension = "tar.gz"
   },
   OSX {
     override val validArchs = listOf(Arch.X86_64)
@@ -60,10 +60,10 @@ enum class Os : Serializable {
     override val p2WsName = "cocoa"
 
     override val installationIniRelativePath = "Contents/Eclipse/eclipse.ini"
-    override fun installationJreRelativePath(arch: Arch) = "../../jre/Contents/Home/bin/java"
+    override fun installationJvmRelativePath(arch: Arch) = "../../jvm/Contents/Home/bin/java"
 
-    override val jreDownloadUrlArchiveSuffix = "macosx"
-    override val jreDownloadUrlArchiveExtension = "gz"
+    override val jvmDownloadUrlArchiveSuffix = "macosx"
+    override val jvmDownloadUrlArchiveExtension = "tar.gz"
   };
 
   abstract val validArchs: Iterable<Arch>
@@ -79,10 +79,10 @@ enum class Os : Serializable {
   abstract val p2WsName: String
 
   abstract val installationIniRelativePath: String
-  abstract fun installationJreRelativePath(arch: Arch): String
+  abstract fun installationJvmRelativePath(arch: Arch): String
 
-  abstract val jreDownloadUrlArchiveSuffix: String
-  abstract val jreDownloadUrlArchiveExtension: String
+  abstract val jvmDownloadUrlArchiveSuffix: String
+  abstract val jvmDownloadUrlArchiveExtension: String
 
   companion object {
     fun current(): Os {
