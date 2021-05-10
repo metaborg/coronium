@@ -61,7 +61,7 @@ Apply the bundle plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.8")
+  id("org.metaborg.coronium.bundle") version("0.3.10")
 }
 ```
 
@@ -174,7 +174,7 @@ For example, dependencies can be embedded as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.8")
+  id("org.metaborg.coronium.bundle") version("0.3.10")
 }
 
 dependencies {
@@ -232,7 +232,7 @@ Apply the feature plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.feature") version("0.3.8")
+  id("org.metaborg.coronium.feature") version("0.3.10")
 }
 ```
 
@@ -265,7 +265,7 @@ Apply the repository plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.repository") version("0.3.8")
+  id("org.metaborg.coronium.repository") version("0.3.10")
 }
 ```
 
@@ -298,5 +298,84 @@ These are located at `build/eclipse-<os>-<arch>-jvm` and `build/dist/Eclipse-<os
 
 To generate Eclipse installations for all operating system and architecture combinations for distribution purposes, run the `archiveEclipseInstallations` and `archiveEclipseInstallationsWithJvm` tasks.
 
+The name of the installation can be changed with the `eclipseInstallationAppName` property, and additional Eclipse repositories and units to install can be provided with the `eclipseInstallationAdditionalRepositories` and `eclipseInstallationAdditionalInstallUnits` properties. For example:
+
+```kotlin
+repository {
+  eclipseInstallationAppName.set("Tiger")
+  eclipseInstallationAdditionalRepositories.add("https://de-jcup.github.io/update-site-eclipse-yaml-editor/update-site/")
+  eclipseInstallationAdditionalInstallUnits.add("de.jcup.yamleditor.feature.group")
+}
+```
+
 Currently, these tasks are hardcoded to generate Eclipse 2021-03 for Java developers instances, and JVMs are hardcoded to AdoptOpenJDK 11.0.11+9 JDKs with HotSpot.
 This will be made configurable in the future.
+
+## Publishing
+
+Bundles, features, and repositories can all be published via the [standard Gradle `maven-publish` plugin](https://docs.gradle.org/current/userguide/publishing_maven.html).
+Bundles are published as regular Java libraries with additional metadata. See the [Setting up basic publishing](https://docs.gradle.org/current/userguide/publishing_setup.html#sec:basic_publishing) guide to configure publications.
+For example, to publish a Bundle:
+
+```kotlin
+plugins {
+  id("org.metaborg.coronium.bundle") version("0.3.10")
+  `maven-publish`
+}
+
+publishing {
+  publications {
+    create<MavenPublication>("myBundle") {
+      from(components["java"])
+    }
+  }
+}
+```
+
+For features and repositories, Coronium will automatically configure *what* to publish.
+The only thing that needs to be done is to enable the `maven-publish` plugin.
+For features:
+
+```kotlin
+plugins {
+  id("org.metaborg.coronium.feature") version("0.3.10")
+  `maven-publish`
+}
+```
+
+For repositories:
+
+```kotlin
+plugins {
+  id("org.metaborg.coronium.repository") version("0.3.10")
+  `maven-publish`
+}
+```
+
+It is up to you to configure [*where* to publish to](https://docs.gradle.org/current/userguide/publishing_setup.html#publishing_overview:where).
+
+If you would like to disable generating publications, set the `createPublication` property to `false` in the corresponding extension.
+For features:
+
+```kotlin
+feature {
+  createPublication.set(false)
+}
+```
+
+For repositories:
+
+```kotlin
+repository {
+  createPublication.set(false)
+}
+```
+
+Finally, it is possible to automatically publish the Eclipse installations generated from a repository by setting the `createEclipseInstallationPublications` and/or `createEclipseInstallationWithJvmPublications` property to `true`:
+
+```kotlin
+repository {
+  createEclipseInstallationPublications.set(true)
+  createEclipseInstallationWithJvmPublications.set(true)
+}
+```
