@@ -37,9 +37,4 @@ jobs:
         id: build
         with:
           gradle-version: ${{ matrix.gradle }}
-          arguments: buildAll --parallel --warning-mode all
-      - uses: eskatos/gradle-command-action@v1
-        id: build-with-stacktrace # Separate build with stacktraces on, otherwise warnings give huge stacktraces.
-        with:
-          gradle-version: ${{ matrix.gradle }}
           arguments: buildAll --parallel --stacktrace

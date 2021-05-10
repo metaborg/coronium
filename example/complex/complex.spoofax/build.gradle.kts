@@ -1,5 +1,6 @@
 plugins {
   id("org.metaborg.gradle.config.java-library")
+  `maven-publish`
 }
 
 dependencies {

@@ -1,5 +1,6 @@
 plugins {
   id("org.metaborg.coronium.feature")
+  `maven-publish`
 }
 
 dependencies {
