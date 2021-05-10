@@ -5,8 +5,9 @@ plugins {
 
 repository {
   eclipseInstallationAppName.set("Tiger")
-  createEclipseInstallationPublications.set(true)
-  createEclipseInstallationWithJvmPublications.set(true)
+  // Disabled because it increases the CI build times a lot.
+//  createEclipseInstallationPublications.set(true)
+//  createEclipseInstallationWithJvmPublications.set(true)
 }
 
 dependencies {
