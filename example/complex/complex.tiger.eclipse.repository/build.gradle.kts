@@ -1,5 +1,12 @@
 plugins {
   id("org.metaborg.coronium.repository")
+  `maven-publish`
+}
+
+repository {
+  eclipseInstallationAppName.set("Tiger")
+  createEclipseInstallationPublications.set(true)
+  createEclipseInstallationWithJvmPublications.set(true)
 }
 
 dependencies {

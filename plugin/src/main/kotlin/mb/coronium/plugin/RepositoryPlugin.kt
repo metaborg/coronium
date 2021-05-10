@@ -33,6 +33,7 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.plugins.JavaBasePlugin
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -50,12 +51,26 @@ import javax.inject.Inject
 open class RepositoryExtension(project: Project) {
   val repositoryDescriptionFile: Property<String> = project.objects.property()
   val qualifierReplacement: Property<String> = project.objects.property()
+
+  val eclipseInstallationAppName: Property<String> = project.objects.property()
+  val eclipseInstallationAdditionalRepositories: ListProperty<String> = project.objects.listProperty()
+  val eclipseInstallationAdditionalInstallUnits: ListProperty<String> = project.objects.listProperty()
+
   val createPublication: Property<Boolean> = project.objects.property()
+  val createEclipseInstallationPublications: Property<Boolean> = project.objects.property()
+  val createEclipseInstallationWithJvmPublications: Property<Boolean> = project.objects.property()
+  val eclipseInstallationPublicationClassifierPrefix: Property<String> = project.objects.property()
 
   init {
     repositoryDescriptionFile.convention("category.xml")
     qualifierReplacement.convention(SimpleDateFormat("yyyyMMddHHmm").format(Calendar.getInstance().time))
+
+    eclipseInstallationAppName.convention("Eclipse")
+
     createPublication.convention(true)
+    createEclipseInstallationPublications.convention(false)
+    createEclipseInstallationWithJvmPublications.convention(false)
+    eclipseInstallationPublicationClassifierPrefix.convention(eclipseInstallationAppName.map { it.toLowerCase() })
   }
 
 
@@ -106,9 +121,8 @@ class RepositoryPlugin @Inject constructor(
     val repositoryDir = project.buildDir.resolve("repository")
     val createRepositoryTask = configureCreateRepositoryTask(project, replaceQualifierTask, createRepositoryXmlTask, replacedQualifierDir, repositoryXmlFile, repositoryDir)
 
-    configureArchiveRepositoryTask(project, extension, createRepositoryTask, repositoryDir)
+    configurePublishingTasks(project, extension, createRepositoryTask, repositoryDir)
     configureRunEclipseTask(project)
-    configureCreateEclipseInstallationTask(project, createRepositoryTask, repositoryDir)
   }
 
   private fun configureConfigurations(project: Project) {
@@ -374,74 +388,30 @@ class RepositoryPlugin @Inject constructor(
     }
   }
 
-  private fun configureArchiveRepositoryTask(
+  private fun configurePublishingTasks(
     project: Project,
     extension: RepositoryExtension,
     createRepositoryTask: TaskProvider<*>,
     repositoryDir: File
   ) {
+    // Register task that archives the repository.
     val archiveRepositoryTask = project.tasks.register<Zip>("archiveRepository") {
       dependsOn(createRepositoryTask)
       from(repositoryDir)
     }
     project.tasks.getByName(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).dependsOn(archiveRepositoryTask)
-
     // Register the output of the archive task as an artifact for the repositoryArchive configuration.
     project.repositoryArchive.outgoing.artifact(archiveRepositoryTask)
-
     // Create a new repository component and add variants from the repositoryArchive to it.
     val repositoryComponent = @Suppress("UnstableApiUsage") run {
-      val featureComponent = softwareComponentFactory.adhoc("repository")
-      project.components.add(featureComponent)
-      featureComponent.addVariantsFromConfiguration(project.repositoryArchive) {
+      val component = softwareComponentFactory.adhoc("repository")
+      project.components.add(component)
+      component.addVariantsFromConfiguration(project.repositoryArchive) {
         mapToMavenScope("runtime")
       }
-      featureComponent
+      component
     }
 
-    // Create a publication from the repository component.
-    project.afterEvaluate {
-      extension.createPublication.finalizeValue()
-      if(extension.createPublication.get()) {
-        project.pluginManager.withPlugin("maven-publish") {
-          project.extensions.configure<PublishingExtension> {
-            publications.register<MavenPublication>("Repository") {
-              from(repositoryComponent)
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private fun configureRunEclipseTask(project: Project) {
-    project.tasks.register<EclipseRun>("runEclipse") {
-      group = "coronium"
-      description = "Runs the bundles from features in this repository inside an Eclipse instance"
-
-      val bundleRuntimeClasspath = project.bundleRuntimeClasspath
-
-      // Depend on the bundle runtime configurations.
-      dependsOn(bundleRuntimeClasspath)
-      inputs.files({ bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
-
-      doFirst {
-        // At task execution time, before the run configuration is prepared, add all runtime dependencies as bundles.
-        // This is done at task execution time because it resolves the configurations.
-        for(file in bundleRuntimeClasspath) {
-          addBundle(file)
-        }
-        // Prepare run configuration before executing.
-        prepareEclipseRunConfig()
-      }
-    }
-  }
-
-  private fun configureCreateEclipseInstallationTask(
-    project: Project,
-    createRepositoryTask: TaskProvider<*>,
-    repositoryDir: File
-  ) {
     // Register a task for creating and archiving (with and without embedded JRE) for every OS/architecture combination.
     data class OsArch(val os: Os, val arch: Arch)
 
@@ -468,6 +438,10 @@ class RepositoryPlugin @Inject constructor(
               "${it.name}.feature.group"
             }
           })
+
+          this.repositories.addAll(extension.eclipseInstallationAdditionalRepositories)
+          this.installUnits.addAll(extension.eclipseInstallationAdditionalInstallUnits)
+          this.appName.set(extension.eclipseInstallationAppName)
 
           this.os.set(os)
           this.arch.set(arch)
@@ -545,6 +519,60 @@ class RepositoryPlugin @Inject constructor(
       description = "Archives an Eclipse installation with embedded JVM for the current OS/architecture, including the features of this repository"
       dependsOn(createCurrentWithJreTask)
       dependsOn(archiveWithJvmTaskPerOsArch[currentOsArch])
+    }
+
+    // Create a publication from the repository component.
+    project.afterEvaluate {
+      extension.createPublication.finalizeValue()
+      extension.createEclipseInstallationPublications.finalizeValue()
+      extension.createEclipseInstallationWithJvmPublications.finalizeValue()
+      extension.eclipseInstallationPublicationClassifierPrefix.finalizeValue()
+      if(extension.createPublication.get()) {
+        project.pluginManager.withPlugin("maven-publish") {
+          project.extensions.configure<PublishingExtension> {
+            publications.register<MavenPublication>("Repository") {
+              from(repositoryComponent)
+              if(extension.createEclipseInstallationPublications.get()) {
+                archiveTaskPerOsArch.forEach { (os, arch), task ->
+                  artifact(task) {
+                    classifier = "${extension.eclipseInstallationPublicationClassifierPrefix.get()}-${os.p2OsName}-${arch.p2ArchName}"
+                  }
+                }
+              }
+              if(extension.createEclipseInstallationWithJvmPublications.get()) {
+                archiveWithJvmTaskPerOsArch.forEach { (os, arch), task ->
+                  artifact(task) {
+                    classifier = "${extension.eclipseInstallationPublicationClassifierPrefix.get()}-${os.p2OsName}-${arch.p2ArchName}-jvm"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private fun configureRunEclipseTask(project: Project) {
+    project.tasks.register<EclipseRun>("runEclipse") {
+      group = "coronium"
+      description = "Runs the bundles from features in this repository inside an Eclipse instance"
+
+      val bundleRuntimeClasspath = project.bundleRuntimeClasspath
+
+      // Depend on the bundle runtime configurations.
+      dependsOn(bundleRuntimeClasspath)
+      inputs.files({ bundleRuntimeClasspath }) // Closure to defer configuration resolution until task execution.
+
+      doFirst {
+        // At task execution time, before the run configuration is prepared, add all runtime dependencies as bundles.
+        // This is done at task execution time because it resolves the configurations.
+        for(file in bundleRuntimeClasspath) {
+          addBundle(file)
+        }
+        // Prepare run configuration before executing.
+        prepareEclipseRunConfig()
+      }
     }
   }
 }

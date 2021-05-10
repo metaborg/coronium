@@ -58,18 +58,20 @@ open class EclipseCreateInstallation : JavaExec() {
 
 
   @get:Internal
-  val appDirName: Provider<String> = os.map { os ->
-    if(os == Os.OSX) {
-      "${appName.get()}.app"
-    } else {
-      appName.get()
+  val appDirName: Provider<String> = os.flatMap { os ->
+    appName.map { appName ->
+      if(os == Os.OSX) {
+        "$appName.app"
+      } else {
+        appName
+      }
     }
   }
 
   @get:Internal
   val finalDestination: Provider<Path> = destination.flatMap { destination ->
-    appDirName.map { applicationDirectoryName ->
-      destination.resolve(applicationDirectoryName)
+    appDirName.map { appDirName ->
+      destination.resolve(appDirName)
     }
   }
 
@@ -123,9 +125,10 @@ open class EclipseCreateInstallation : JavaExec() {
     installUnits.get().forEach { args("-installIU", it) }
     args("-tag", "InitialState")
     destination.finalizeValue()
+    destination.get().toFile().deleteRecursively() // Delete and recreate destination to ensure a clean installation.
+    destination.get().toFile().mkdirs()
     appName.finalizeValue()
     args("-destination", finalDestination.get())
-    finalDestination.get().toFile().deleteRecursively()
     args("-profile", "SDKProfile")
     args("-profileProperties", " org.eclipse.update.install.features=true")
     os.finalizeValue()
