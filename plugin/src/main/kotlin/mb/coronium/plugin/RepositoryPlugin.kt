@@ -534,14 +534,14 @@ class RepositoryPlugin @Inject constructor(
               from(repositoryComponent)
               if(extension.createEclipseInstallationPublications.get()) {
                 archiveTaskPerOsArch.forEach { (os, arch), task ->
-                  artifact(task) {
+                  artifact(task.get()) {
                     classifier = "${extension.eclipseInstallationPublicationClassifierPrefix.get()}-${os.p2OsName}-${arch.p2ArchName}"
                   }
                 }
               }
               if(extension.createEclipseInstallationWithJvmPublications.get()) {
                 archiveWithJvmTaskPerOsArch.forEach { (os, arch), task ->
-                  artifact(task) {
+                  artifact(task.get()) {
                     classifier = "${extension.eclipseInstallationPublicationClassifierPrefix.get()}-${os.p2OsName}-${arch.p2ArchName}-jvm"
                   }
                 }
