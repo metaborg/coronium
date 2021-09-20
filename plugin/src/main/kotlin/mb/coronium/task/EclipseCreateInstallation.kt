@@ -19,7 +19,13 @@ import java.nio.file.Path
 @Suppress("UnstableApiUsage")
 open class EclipseCreateInstallation : JavaExec() {
   @get:Input
+  val baseRepositories: ListProperty<String> = project.objects.listProperty()
+
+  @get:Input
   val repositories: ListProperty<String> = project.objects.listProperty()
+
+  @get:Input
+  val baseInstallUnits: ListProperty<String> = project.objects.listProperty()
 
   @get:Input
   val installUnits: ListProperty<String> = project.objects.listProperty()
@@ -82,10 +88,10 @@ open class EclipseCreateInstallation : JavaExec() {
   init {
     main = "-jar"
 
-    repositories.value(listOf(
+    baseRepositories.value(listOf(
       "https://artifacts.metaborg.org/content/groups/eclipse-2021-03/"
     ))
-    installUnits.value(listOf(
+    baseInstallUnits.value(listOf(
       "org.eclipse.platform.ide",
       "org.eclipse.platform.feature.group",
       "org.eclipse.epp.package.common.feature.feature.group",
@@ -119,8 +125,12 @@ open class EclipseCreateInstallation : JavaExec() {
       mavenized.equinoxLauncherPath(),
       "-application", "org.eclipse.equinox.p2.director"
     )
+    baseRepositories.finalizeValue()
+    baseRepositories.get().forEach { args("-repository", it) }
     repositories.finalizeValue()
     repositories.get().forEach { args("-repository", it) }
+    baseInstallUnits.finalizeValue()
+    baseInstallUnits.get().forEach { args("-installIU", it) }
     installUnits.finalizeValue()
     installUnits.get().forEach { args("-installIU", it) }
     args("-tag", "InitialState")
