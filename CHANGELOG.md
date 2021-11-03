@@ -3,6 +3,8 @@ All notable changes to this project are documented in this file, based on [Keep 
 
 
 ## [Unreleased]
+### Changed
+- Eclipse download mirror was changed from `https://mirror.dkm.cz/eclipse/` to `https://www.eclipse.org/downloads/download.php?file=` due to the former suddenly deleting several older versions.
 
 
 ## [0.3.11]
