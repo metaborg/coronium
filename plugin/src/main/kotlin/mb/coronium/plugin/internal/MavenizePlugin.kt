@@ -25,7 +25,7 @@ open class MavenizeExtension(project: Project) {
   init {
     os.convention(Os.current())
     arch.convention(Arch.current())
-    mirrorUrl.convention("https://www.eclipse.org/downloads/download.php?file=")
+    mirrorUrl.convention("https://mirror.ibcp.fr/pub/eclipse")
     majorVersion.convention("2020-06")
     minorVersion.convention("R")
   }
