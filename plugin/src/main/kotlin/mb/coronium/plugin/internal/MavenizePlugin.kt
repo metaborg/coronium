@@ -25,13 +25,14 @@ open class MavenizeExtension(project: Project) {
   init {
     os.convention(Os.current())
     arch.convention(Arch.current())
-    mirrorUrl.convention("https://mirror.ibcp.fr/pub/eclipse")
-    majorVersion.convention("2020-06")
+    mirrorUrl.convention("https://artifacts.metaborg.org/content/repositories/releases/org/eclipse")
+    majorVersion.convention("2021-03")
     minorVersion.convention("R")
   }
 
-  internal val groupId: Provider<String> = majorVersion.flatMap { majorVersion -> minorVersion.map { minorVersion -> "eclipse-$majorVersion-$minorVersion" } }
-  internal val prefixUrl: Provider<String> = majorVersion.flatMap { majorVersion -> minorVersion.map { minorVersion -> "technology/epp/downloads/release/$majorVersion/$minorVersion/eclipse-committers-$majorVersion-$minorVersion" } }
+  internal val version: Provider<String> = majorVersion.flatMap { majorVersion -> minorVersion.map { minorVersion -> "$majorVersion-$minorVersion" } }
+  internal val groupId: Provider<String> = version.map { version -> "eclipse-$version"  }
+  internal val prefixUrl: Provider<String> = version.map { version -> "eclipse-committers/$version/eclipse-committers-$version" }
   internal val url: Provider<String> = mirrorUrl.flatMap { mirrorUrl -> prefixUrl.flatMap { prefixUrl -> os.flatMap { os -> arch.map { arch -> "$mirrorUrl/$prefixUrl-${os.eclipseDownloadUrlArchiveSuffix}${arch.appDownloadUrlArchiveSuffix}.${os.eclipseDownloadUrlArchiveExtension}" } } } }
 
   internal fun finalizeOsArch() {
