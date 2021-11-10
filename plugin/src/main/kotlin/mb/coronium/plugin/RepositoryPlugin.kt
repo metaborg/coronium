@@ -327,6 +327,7 @@ class RepositoryPlugin @Inject constructor(
           if(Files.isRegularFile(repositoryDescriptionFile)) {
             builder.readFromRepositoryXml(repositoryDescriptionFile, extension.log)
           }
+          builder.updateVersionsFrom(repositoryFeatureArtifacts.resolvedConfiguration)
           val repository = builder.build()
           repository.mergeWith(repositoryFeatureArtifacts.resolvedConfiguration)
         }

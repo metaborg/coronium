@@ -15,6 +15,7 @@ data class Feature(
   val id: String,
   val version: BundleVersion,
   val label: String?,
+  val provider: String?,
   val bundleIncludes: Collection<BundleInclude>,
   val featureIncludes: Collection<FeatureInclude>
 ) {
@@ -42,6 +43,7 @@ data class Feature(
     var id: String? = null
     var version: BundleVersion? = null
     var label: String? = null
+    var provider: String? = null
     var bundleIncludes: MutableCollection<BundleInclude> = mutableListOf()
     var featureIncludes: MutableCollection<FeatureInclude> = mutableListOf()
 
@@ -68,6 +70,7 @@ data class Feature(
       }
 
       label = featureNode.attributes.getNamedItem("label")?.nodeValue
+      provider = featureNode.attributes.getNamedItem("provider-name")?.nodeValue
 
       val subNodes = featureNode.childNodes
       for(i in 0 until subNodes.length) {
@@ -128,6 +131,7 @@ data class Feature(
       id ?: error("Cannot create feature, id was not set"),
       version ?: error("Cannot create feature, version was not set"),
       label,
+      provider,
       bundleIncludes,
       featureIncludes
     )
@@ -179,13 +183,13 @@ data class Feature(
       }
     }
 
-    return Feature(id, version, label, mergedBundleIncludes, mergedFeatureIncludes)
+    return Feature(id, version, label, provider, mergedBundleIncludes, mergedFeatureIncludes)
   }
 
   fun writeToFeatureXml(outputStream: OutputStream) {
     PrintWriter(outputStream).use { writer ->
       writer.println("""<?xml version="1.0" encoding="UTF-8"?>""")
-      writer.println("""<feature id="$id" version="$version"${if(label != null) """ label="$label"""" else ""}>""")
+      writer.println("""<feature id="$id" version="$version"${if(label != null) """ label="$label"""" else ""}${if(provider != null) """ provider-name="$provider"""" else ""}>""")
       for(bundleInclude in bundleIncludes) {
         writer.println("""  <plugin id="${bundleInclude.coordinates.id}" version="${bundleInclude.coordinates.version}" unpack="${bundleInclude.unpack}"/>""")
       }

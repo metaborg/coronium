@@ -1,6 +1,7 @@
 package mb.coronium.model.eclipse
 
 import mb.coronium.mavenize.toEclipse
+import mb.coronium.model.eclipse.Repository.Dependency
 import mb.coronium.model.maven.MavenVersion
 import mb.coronium.util.Log
 import org.gradle.api.artifacts.ResolvedConfiguration
@@ -29,6 +30,22 @@ data class Repository(
   )
 
   class Builder {
+    data class Dependency(
+      val coordinates: Coordinates,
+      val categoryName: String?
+    ) {
+      data class Coordinates(val id: String, var version: BundleVersion?) {
+        fun build(): Repository.Dependency.Coordinates {
+          val version = version ?: error("Cannot create dependency to $id, version was not set")
+          return Repository.Dependency.Coordinates(id, version)
+        }
+      }
+
+      fun build(): Repository.Dependency {
+        return Dependency(coordinates.build(), categoryName)
+      }
+    }
+
     val dependencies: MutableCollection<Dependency> = mutableListOf()
     val categories: MutableCollection<Category> = mutableListOf()
 
@@ -55,17 +72,23 @@ data class Repository(
           "feature" -> {
             val depId = subNode.attributes.getNamedItem("id")?.nodeValue
             val depVersionStr = subNode.attributes.getNamedItem("version")?.nodeValue
-            if(depId == null || depVersionStr == null) {
-              log.warning("Feature dependency of $file has no id or version; skipping dependency")
+            if(depId == null) {
+              log.warning("Feature dependency of $file has no id; skipping dependency")
             } else {
-              val depVersion = BundleVersion.parse(depVersionStr)
-              if(depVersion == null) {
-                log.warning("Could not parse dependency version '$depVersionStr' of $file; skipping dependency")
+              val depVersion = if(depVersionStr != null) {
+                val version = BundleVersion.parse(depVersionStr)
+                if(version == null) {
+                  log.warning("Could not parse dependency version '$depVersionStr' of $file")
+                  null
+                } else {
+                  version
+                }
               } else {
-                val coordinates = Dependency.Coordinates(depId, depVersion)
-                val categoryName = featureCategoryName(subNode, file, log)
-                dependencies.add(Dependency(coordinates, categoryName))
+                null
               }
+              val coordinates = Dependency.Coordinates(depId, depVersion)
+              val categoryName = featureCategoryName(subNode, file, log)
+              dependencies.add(Dependency(coordinates, categoryName))
             }
           }
           "category-def" -> {
@@ -124,7 +147,19 @@ data class Repository(
       return null
     }
 
-    fun build() = Repository(dependencies, categories)
+    fun updateVersionsFrom(gradleFeatureDependencies: ResolvedConfiguration) {
+      // Update unset versions from Gradle
+      gradleFeatureDependencies.resolvedArtifacts.forEach { resolvedArtifact ->
+        val module = resolvedArtifact.moduleVersion.id
+        val existingDependency = dependencies.find { it.coordinates.id == module.name }
+        val dependencyVersion = MavenVersion.parse(module.version).toEclipse()
+        if(existingDependency != null && existingDependency.coordinates.version == null) {
+          existingDependency.coordinates.version = dependencyVersion
+        }
+      }
+    }
+
+    fun build() = Repository(dependencies.map { it.build() }, categories)
   }
 
   fun mergeWith(gradleFeatureDependencies: ResolvedConfiguration): Repository {

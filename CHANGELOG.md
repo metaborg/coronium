@@ -5,9 +5,20 @@ All notable changes to this project are documented in this file, based on [Keep 
 ## [Unreleased]
 
 
-## [0.3.12] - 201-11-03
+## [0.3.14] - 2021-11-10
+### Added
+- Support for the `provider-name` attribute of `feature.xml`
+- Support for feature dependencies without `version` attributes (but with the `id` attribute set) in `category.xml`, where the dependency version is discovered through Gradle.
+
+
+## [0.3.13] - 2021-11-08
 ### Changed
-- Eclipse download mirror was changed from `https://mirror.dkm.cz/eclipse/` to `https://mirror.ibcp.fr/pub/eclipse` due to the former suddenly deleting several older versions.
+- Eclipse download mirror to our artifact server at `https://artifacts.metaborg.org/content/repositories/releases/org/eclipse` and changed file scheme, as Eclipse mirrors are slow and unreliable.
+
+
+## [0.3.12] - 2021-11-03
+### Changed
+- Eclipse download mirror from `https://mirror.dkm.cz/eclipse/` to `https://mirror.ibcp.fr/pub/eclipse` due to the former suddenly deleting several older versions.
 
 
 ## [0.3.11] - 2021-09-20
@@ -15,6 +26,8 @@ All notable changes to this project are documented in this file, based on [Keep 
 - Base repositories and install units to be overridden in `EclipseCreateInstallation` tasks by adding `baseRepositories` and `baseInstallUnits` properties.
 
 
-[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.3.12...HEAD
+[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.3.14...HEAD
+[0.3.14]: https://github.com/metaborg/coronium/compare/release-0.3.13...release-0.3.14
+[0.3.13]: https://github.com/metaborg/coronium/compare/release-0.3.12...release-0.3.13
 [0.3.12]: https://github.com/metaborg/coronium/compare/release-0.3.11...release-0.3.12
 [0.3.11]: https://github.com/metaborg/coronium/compare/release-0.3.10...release-0.3.11
