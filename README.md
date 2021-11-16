@@ -29,7 +29,8 @@ Consequently, Gradle metadata needs to be enabled for this to work, and the Mave
 
 ## Requirements
 
-Gradle 5.3 or higher is required.
+Gradle 5.6.4 and 6.9.1 are supported. Versions in between 5.6.4 and 6.9.1 may work but are untested. Versions higher than 6.9.1 may work but are untested. Versions lower than 5.6.4 do not work.
+
 The code snippets in this README assume you are using Gradle with Kotlin, but should be translatable to Groovy as well.
 
 ## Prerequisites
@@ -45,7 +46,7 @@ pluginManagement {
 }
 ```
 
-If you are on Gradle 5.3-5.6.4, Gradle metadata needs to be enabled. Add the following line to your settings.gradle(.kts) file:
+If you are on Gradle 5.6.4, Gradle metadata needs to be enabled. Add the following line to your settings.gradle(.kts) file:
 
 ```kotlin
 if(org.gradle.util.VersionNumber.parse(gradle.gradleVersion).major < 6) {

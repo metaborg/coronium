@@ -3,6 +3,9 @@ All notable changes to this project are documented in this file, based on [Keep 
 
 
 ## [Unreleased]
+### Changed
+- Revert default Eclipse version to 2020-06, which still runs under and is compiled with Java 8.
+- Update supported Gradle versions to 5.6.4 and 6.9.1 in README.
 
 
 ## [0.3.14] - 2021-11-10
