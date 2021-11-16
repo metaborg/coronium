@@ -29,7 +29,17 @@ Consequently, Gradle metadata needs to be enabled for this to work, and the Mave
 
 ## Requirements
 
-Gradle 5.6.4 and 6.9.1 are supported. Versions in between 5.6.4 and 6.9.1 may work but are untested. Versions higher than 6.9.1 may work but are untested. Versions lower than 5.6.4 do not work.
+Gradle 5.6.4 and 6.9.1 are supported.
+Versions in between 5.6.4 and 6.9.1 may work but are untested.
+Versions higher than 6.9.1 may work but are untested.
+Versions lower than 5.6.4 do not work.
+
+The required Java version depends on which version of Eclipse you are building against.
+By default, you build against Eclipse 2020-06, which requires Java 8.
+Eclipse 2020-09 and up require Java 11.
+
+Compiling with higher Java version will most likely work.
+However, running with higher Java versions may or may not work, depending on whether Eclipse runs on that Java version.
 
 The code snippets in this README assume you are using Gradle with Kotlin, but should be translatable to Groovy as well.
 
