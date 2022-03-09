@@ -74,7 +74,7 @@ Apply the bundle plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.10")
+  id("org.metaborg.coronium.bundle") version("0.3.15")
 }
 ```
 
@@ -187,7 +187,7 @@ For example, dependencies can be embedded as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.10")
+  id("org.metaborg.coronium.bundle") version("0.3.15")
 }
 
 dependencies {
@@ -245,7 +245,7 @@ Apply the feature plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.feature") version("0.3.10")
+  id("org.metaborg.coronium.feature") version("0.3.15")
 }
 ```
 
@@ -278,7 +278,7 @@ Apply the repository plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.repository") version("0.3.10")
+  id("org.metaborg.coronium.repository") version("0.3.15")
 }
 ```
 
@@ -332,7 +332,7 @@ For example, to publish a Bundle:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.10")
+  id("org.metaborg.coronium.bundle") version("0.3.15")
   `maven-publish`
 }
 
@@ -351,7 +351,7 @@ For features:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.feature") version("0.3.10")
+  id("org.metaborg.coronium.feature") version("0.3.15")
   `maven-publish`
 }
 ```
@@ -360,7 +360,7 @@ For repositories:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.repository") version("0.3.10")
+  id("org.metaborg.coronium.repository") version("0.3.15")
   `maven-publish`
 }
 ```
@@ -434,7 +434,7 @@ You should also push the release tag you made such that this release is reproduc
 
 ## Copyright and License
 
-Copyright © 2018-2021 Delft University of Technology
+Copyright © 2018-2022 Delft University of Technology
 
 The files in this repository are licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 You may use the files in this repository in compliance with the license.
