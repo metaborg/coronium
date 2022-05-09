@@ -1,12 +1,15 @@
 package mb.coronium.util
 
 import org.apache.commons.compress.archivers.ArchiveStreamFactory
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.attribute.PosixFilePermission
 import java.util.concurrent.TimeUnit
 import java.util.jar.Attributes
 import java.util.jar.JarEntry
@@ -55,6 +58,28 @@ private fun unarchive(inputStream: InputStream, unpackDirectory: Path, log: Log)
         Files.newOutputStream(path).buffered().use {
           archiveInputStream.copyTo(it)
           it.flush()
+        }
+      }
+      val mode = when(entry) {
+        is ZipArchiveEntry -> entry.unixMode
+        is TarArchiveEntry -> entry.mode
+        else -> -1
+      }
+      if(mode != -1 && mode != 0) {
+        val perms = HashSet<PosixFilePermission>()
+        if((mode and 1) != 0) perms.add(PosixFilePermission.OTHERS_EXECUTE)
+        if((mode and 2) != 0) perms.add(PosixFilePermission.OTHERS_WRITE)
+        if((mode and 4) != 0) perms.add(PosixFilePermission.OTHERS_READ)
+        if((mode and 8) != 0) perms.add(PosixFilePermission.GROUP_EXECUTE)
+        if((mode and 16) != 0) perms.add(PosixFilePermission.GROUP_WRITE)
+        if((mode and 32) != 0) perms.add(PosixFilePermission.GROUP_READ)
+        if((mode and 64) != 0) perms.add(PosixFilePermission.OWNER_EXECUTE)
+        if((mode and 128) != 0) perms.add(PosixFilePermission.OWNER_WRITE)
+        if((mode and 256) != 0) perms.add(PosixFilePermission.OWNER_READ)
+        try {
+          Files.setPosixFilePermissions(path, perms)
+        } catch(e: java.lang.UnsupportedOperationException) {
+          // Ignore.
         }
       }
     }

@@ -3,6 +3,8 @@ All notable changes to this project are documented in this file, based on [Keep 
 
 
 ## [Unreleased]
+### Fixed
+- UNIX JVMs embedded into Eclipse installations not working due to JVM not having the executable mode set.
 
 
 ## [0.3.15] - 2021-11-16
