@@ -3,6 +3,9 @@ All notable changes to this project are documented in this file, based on [Keep 
 
 
 ## [Unreleased]
+
+
+## [0.3.16] - 2022-05-13
 ### Fixed
 - UNIX JVMs embedded into Eclipse installations not working due to JVM not having the executable mode set.
 
@@ -37,7 +40,8 @@ All notable changes to this project are documented in this file, based on [Keep 
 - Base repositories and install units to be overridden in `EclipseCreateInstallation` tasks by adding `baseRepositories` and `baseInstallUnits` properties.
 
 
-[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.3.15...HEAD
+[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.3.16...HEAD
+[0.3.16]: https://github.com/metaborg/coronium/compare/release-0.3.15...release-0.3.16
 [0.3.15]: https://github.com/metaborg/coronium/compare/release-0.3.14...release-0.3.15
 [0.3.14]: https://github.com/metaborg/coronium/compare/release-0.3.13...release-0.3.14
 [0.3.13]: https://github.com/metaborg/coronium/compare/release-0.3.12...release-0.3.13
