@@ -89,7 +89,7 @@ open class EclipseCreateInstallation : JavaExec() {
     main = "-jar"
 
     baseRepositories.value(listOf(
-      "https://artifacts.metaborg.org/content/groups/eclipse-2021-03/"
+      "https://artifacts.metaborg.org/content/groups/eclipse-2022-06/"
     ))
     baseInstallUnits.value(listOf(
       "org.eclipse.platform.ide",

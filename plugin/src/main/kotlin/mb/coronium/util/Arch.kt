@@ -20,6 +20,15 @@ enum class Arch : Serializable {
     override val p2ArchName = "x86_64"
 
     override val jreDownloadUrlArchiveSuffix = "x64"
+  },
+  AArch64 {
+    override val displayName = "AArch64"
+
+    override val appDownloadUrlArchiveSuffix = "-aarch64"
+
+    override val p2ArchName = "aarch64"
+
+    override val jreDownloadUrlArchiveSuffix = "aarch64"
   };
 
   abstract val displayName: String
@@ -36,6 +45,7 @@ enum class Arch : Serializable {
       return when(arch) {
         "x86", "i386" -> X86_32
         "amd64", "x86_64" -> X86_64
+        "aarch64" -> AArch64
         else -> error("Unsupported Eclipse architecture '$arch'")
       }
     }

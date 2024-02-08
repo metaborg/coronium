@@ -68,11 +68,11 @@ open class EclipseInstallationAddJvm : DefaultTask() {
   init {
     dependsOn(createTask)
 
-    jvmVersion.convention("11.0.11+9")
+    jvmVersion.convention("11.0.22+7")
     jvmDownloadUrl.convention(os.flatMap { os ->
       arch.flatMap { arch ->
         jvmDownloadVersion.map { version ->
-          "https://artifacts.metaborg.org/content/repositories/releases/net/adoptopenjdk/jdk/$version/jdk-$version-${os.jvmDownloadUrlArchiveSuffix}-${arch.jreDownloadUrlArchiveSuffix}.${os.jvmDownloadUrlArchiveExtension}"
+          "https://artifacts.metaborg.org/content/repositories/releases/net/adoptium/jdk/$version/jdk-$version-${os.jvmDownloadUrlArchiveSuffix}-${arch.jreDownloadUrlArchiveSuffix}.${os.jvmDownloadUrlArchiveExtension}"
         }
       }
     })

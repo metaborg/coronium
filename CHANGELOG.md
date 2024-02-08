@@ -3,6 +3,10 @@ All notable changes to this project are documented in this file, based on [Keep 
 
 
 ## [Unreleased]
+### Added
+- Support for aarch64 architecture.
+- Setting default Eclipse version to 2022-06, as 2020-06 does not have aarch64 architecture, consequently dropping Java 8 support.
+- Setting default JDK to Eclipse Adoptium 11.0.22+7.
 
 
 ## [0.3.16] - 2022-05-13

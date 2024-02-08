@@ -321,7 +321,7 @@ repository {
 }
 ```
 
-Currently, these tasks are hardcoded to generate Eclipse 2021-03 for Java developers instances, and JVMs are hardcoded to AdoptOpenJDK 11.0.11+9 JDKs with HotSpot.
+Currently, these tasks are hardcoded to generate Eclipse 2022-06 for Java developers instances, and JVMs are hardcoded to Eclipse Temurin 11.0.22+7 JDKs with HotSpot.
 This will be made configurable in the future.
 
 ## Publishing

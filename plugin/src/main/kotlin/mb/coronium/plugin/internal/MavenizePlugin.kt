@@ -26,7 +26,7 @@ open class MavenizeExtension(project: Project) {
     os.convention(Os.current())
     arch.convention(Arch.current())
     mirrorUrl.convention("https://artifacts.metaborg.org/content/repositories/releases/org/eclipse")
-    majorVersion.convention("2020-06")
+    majorVersion.convention("2022-06")
     minorVersion.convention("R")
   }
 

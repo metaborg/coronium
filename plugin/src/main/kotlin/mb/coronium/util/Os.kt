@@ -22,13 +22,14 @@ enum class Os : Serializable {
     override fun installationJvmRelativePath(arch: Arch) = when(arch) {
       Arch.X86_32 -> """jvm\bin\client\jvm.dll"""
       Arch.X86_64 -> """jvm\bin\server\jvm.dll"""
+      Arch.AArch64 -> error("Unsupported architecture aarch64 on Windows")
     }
 
     override val jvmDownloadUrlArchiveSuffix = "windows"
     override val jvmDownloadUrlArchiveExtension = "zip"
   },
   Linux {
-    override val validArchs = listOf(Arch.X86_64)
+    override val validArchs = listOf(Arch.X86_64, Arch.AArch64)
     override val displayName = "Linux"
 
     override val eclipseDownloadUrlArchiveSuffix = "linux-gtk"
@@ -47,7 +48,7 @@ enum class Os : Serializable {
     override val jvmDownloadUrlArchiveExtension = "tar.gz"
   },
   OSX {
-    override val validArchs = listOf(Arch.X86_64)
+    override val validArchs = listOf(Arch.X86_64, Arch.AArch64)
     override val displayName = "MacOSX"
 
     override val eclipseDownloadUrlArchiveSuffix = "macosx-cocoa"
