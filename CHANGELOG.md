@@ -3,6 +3,9 @@ All notable changes to this project are documented in this file, based on [Keep 
 
 
 ## [Unreleased]
+
+
+## [0.3.17] - 2024-02-09
 ### Added
 - Support for aarch64 architecture.
 - Setting default Eclipse version to 2022-06, as 2020-06 does not have aarch64 architecture, consequently dropping Java 8 support.
@@ -44,7 +47,8 @@ All notable changes to this project are documented in this file, based on [Keep 
 - Base repositories and install units to be overridden in `EclipseCreateInstallation` tasks by adding `baseRepositories` and `baseInstallUnits` properties.
 
 
-[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.3.16...HEAD
+[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.3.17...HEAD
+[0.3.17]: https://github.com/metaborg/coronium/compare/release-0.3.16...release-0.3.17
 [0.3.16]: https://github.com/metaborg/coronium/compare/release-0.3.15...release-0.3.16
 [0.3.15]: https://github.com/metaborg/coronium/compare/release-0.3.14...release-0.3.15
 [0.3.14]: https://github.com/metaborg/coronium/compare/release-0.3.13...release-0.3.14
