@@ -41,14 +41,8 @@ open class BundleExtension(private val project: Project) {
   var manifestFile: Property<File> = project.objects.property()
 
   fun createEclipseTargetPlatformDependency(name: String, version: String? = null): Any {
-    return if(org.gradle.util.VersionNumber.parse(project.gradle.gradleVersion).major < 6) {
-      // Gradle < 6 does not support adding a (lazy) Provider as a dependency. Fall back to old behaviour.
-      project.mavenizeExtension().finalizeVersion()
-      project.dependencies.create(project.mavenizeExtension().groupId.get(), name, version ?: "[0,)")
-    } else {
-      project.mavenizeExtension().groupId.map {
-        project.dependencies.create(it, name, version ?: "[0,)")
-      }
+    return project.mavenizeExtension().groupId.map {
+      project.dependencies.create(it, name, version ?: "[0,)")
     }
   }
 
