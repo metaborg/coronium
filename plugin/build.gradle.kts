@@ -1,7 +1,7 @@
 plugins {
-  id("org.metaborg.gradle.config.root-project") version "0.4.7"
-  id("org.metaborg.gradle.config.kotlin-gradle-plugin") version "0.4.7"
-  id("org.metaborg.gradle.config.junit-testing") version "0.4.7"
+  id("org.metaborg.gradle.config.root-project") version "0.5.6"
+  id("org.metaborg.gradle.config.kotlin-gradle-plugin") version "0.5.6"
+  id("org.metaborg.gradle.config.junit-testing") version "0.5.6"
   id("org.metaborg.gitonium") version "0.1.5"
   kotlin("jvm") version "1.3.41" // 1.3.41 in sync with kotlin-dsl plugin.
   `kotlin-dsl`
