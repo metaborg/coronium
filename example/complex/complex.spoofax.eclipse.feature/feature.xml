@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature label="Spoofax Eclipse">
-  <plugin id="complex.spoofax.eclipse" unpack="true"/>
+  <plugin id="complex.spoofax.eclipse" unpack="true" />
 </feature>
