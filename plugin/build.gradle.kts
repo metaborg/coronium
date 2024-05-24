@@ -2,7 +2,7 @@ plugins {
     id("org.metaborg.gradle.config.root-project") version "0.5.6"
     id("org.metaborg.gradle.config.kotlin-gradle-plugin") version "0.5.6"
     id("org.metaborg.gradle.config.junit-testing") version "0.5.6"
-    id("org.metaborg.gitonium") version "1.1.0"
+    id("org.metaborg.gitonium") version "1.2.0"
     `kotlin-dsl`
 }
 
