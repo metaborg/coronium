@@ -37,7 +37,7 @@ fun BundleVersionOrRange.toMaven(): MavenVersionOrRange {
 
 
 fun MavenVersion.toEclipse(): BundleVersion {
-    return BundleVersion(major, minor, incremental, qualifier?.replace("SNAPSHOT", "qualifier"))
+    return BundleVersion(major, minor, incremental, qualifier?.replace("SNAPSHOT", "qualifier")?.replace("+dirty", ""))
 }
 
 fun MavenVersionRange.toEclipse(): BundleVersionOrRange {
