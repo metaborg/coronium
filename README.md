@@ -31,11 +31,6 @@ Consequently, Gradle metadata needs to be enabled for this to work, and the Mave
 
 ## Requirements
 
-Gradle 5.6.4 and 6.9.1 are supported.
-Versions in between 5.6.4 and 6.9.1 may work but are untested.
-Versions higher than 6.9.1 may work but are untested.
-Versions lower than 5.6.4 do not work.
-
 The required Java version depends on which version of Eclipse you are building against.
 By default, you build against Eclipse 2020-06, which requires Java 8.
 Eclipse 2020-09 and up require Java 11.
@@ -58,13 +53,6 @@ pluginManagement {
 }
 ```
 
-If you are on Gradle 5.6.4, Gradle metadata needs to be enabled. Add the following line to your settings.gradle(.kts) file:
-
-```kotlin
-if(org.gradle.util.VersionNumber.parse(gradle.gradleVersion).major < 6) {
-  enableFeaturePreview("GRADLE_METADATA")
-}
-```
 
 ## Building Eclipse plugins
 
@@ -74,7 +62,7 @@ Apply the bundle plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.15")
+  id("org.metaborg.coronium.bundle") version("0.3.18")
 }
 ```
 
@@ -88,7 +76,7 @@ Eclipse plugins are just OSGi bundles with additional metadata, so we use the te
 The following configurations can be used to create dependencies to bundles, mimicking the `api`/`implementation` configurations of the `java-library` plugin:
 
 * `bundleApi`/`bundleImplementation`: dependencies to bundles.
-* `bundleTargetPlatformApi`/`bundleTargetPlatofrmImplementation`: dependencies to bundles in a target platform. Currently, only the `eclipse` target platform is supported, which points to a recent version of Eclipse.
+* `bundleTargetPlatformApi`/`bundleTargetPlatformImplementation`: dependencies to bundles in a target platform. Currently, only the `eclipse` target platform is supported, which points to a recent version of Eclipse.
 
 Configurations ending with `Api` are transitive for both compiling and running dependents.
 In OSGi terms, this becomes a `Require-Bundle` dependency with `;visibility:=reexport`.
@@ -187,7 +175,7 @@ For example, dependencies can be embedded as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.15")
+  id("org.metaborg.coronium.bundle") version("0.3.18")
 }
 
 dependencies {
@@ -245,7 +233,7 @@ Apply the feature plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.feature") version("0.3.15")
+  id("org.metaborg.coronium.feature") version("0.3.18")
 }
 ```
 
@@ -278,7 +266,7 @@ Apply the repository plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.repository") version("0.3.15")
+  id("org.metaborg.coronium.repository") version("0.3.18")
 }
 ```
 
@@ -332,7 +320,7 @@ For example, to publish a Bundle:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.15")
+  id("org.metaborg.coronium.bundle") version("0.3.18")
   `maven-publish`
 }
 
@@ -351,7 +339,7 @@ For features:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.feature") version("0.3.15")
+  id("org.metaborg.coronium.feature") version("0.3.18")
   `maven-publish`
 }
 ```
@@ -360,7 +348,7 @@ For repositories:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.repository") version("0.3.15")
+  id("org.metaborg.coronium.repository") version("0.3.18")
   `maven-publish`
 }
 ```

@@ -1,8 +1,13 @@
 # Changelog
-All notable changes to this project are documented in this file, based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+All notable changes to this project are documented in this file, based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
 ## [Unreleased]
+
+
+## [0.3.18] - 2024-05-27
+### Fixed
+- Version string that end with `+dirty` now get their suffix removed. They are not supported by Bnd, resulting in the error 'Fragment-Host spoofax.eclipse specifies invalid version range 0.22.2.develop-qualifier+dirty'.
 
 
 ## [0.3.17] - 2024-02-09
@@ -47,7 +52,8 @@ All notable changes to this project are documented in this file, based on [Keep 
 - Base repositories and install units to be overridden in `EclipseCreateInstallation` tasks by adding `baseRepositories` and `baseInstallUnits` properties.
 
 
-[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.3.17...HEAD
+[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.3.18...HEAD
+[0.3.18]: https://github.com/metaborg/coronium/compare/release-0.3.17...release-0.3.18
 [0.3.17]: https://github.com/metaborg/coronium/compare/release-0.3.16...release-0.3.17
 [0.3.16]: https://github.com/metaborg/coronium/compare/release-0.3.15...release-0.3.16
 [0.3.15]: https://github.com/metaborg/coronium/compare/release-0.3.14...release-0.3.15
