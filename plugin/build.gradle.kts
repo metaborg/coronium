@@ -49,7 +49,7 @@ val embedded: Configuration = configurations.create("embedded")
 configurations.getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(embedded)
 val mavenResolverVersion = "1.3.3"
 val mavenVersion = "3.6.0"
-val bndGradleVersion = "5.0.1"
+val bndGradleVersion = "5.3.0"
 dependencies {
     embedded("org.apache.maven.resolver:maven-resolver-api:$mavenResolverVersion")
     embedded("org.apache.maven.resolver:maven-resolver-impl:$mavenResolverVersion")
