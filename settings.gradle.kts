@@ -6,6 +6,17 @@ pluginManagement {
     }
 }
 
+// This allows us to use the catalog in dependencies
+dependencyResolutionManagement {
+    repositories {
+        maven("https://artifacts.metaborg.org/content/groups/public/")
+    }
+    versionCatalogs {
+        create("libs") {
+            from("org.metaborg.spoofax3:catalog:0.2.1")
+        }
+    }
+}
 
 // We split the build up into one main composite build in the 'plugin' directory, because it builds Gradle plugins,
 // which we want to test. Gradle plugins are not directly available in a multi-project build, therefore a separate

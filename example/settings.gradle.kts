@@ -6,6 +6,18 @@ pluginManagement {
     }
 }
 
+// This allows us to use the catalog in dependencies
+dependencyResolutionManagement {
+    repositories {
+        maven("https://artifacts.metaborg.org/content/groups/public/")
+    }
+    versionCatalogs {
+        create("libs") {
+            from("org.metaborg.spoofax3:catalog:0.2.1")
+        }
+    }
+}
+
 
 // Only include composite builds when this is the root project (it has no parent), for example when running Gradle tasks
 // from the command-line. Otherwise, the parent project will include these composite builds.
