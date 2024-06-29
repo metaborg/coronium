@@ -7,11 +7,11 @@ dependencies {
     api(platform(project(":complex.platform")))
     annotationProcessor(platform(project(":complex.platform")))
 
-    api("org.metaborg:log.api")
-    api("org.metaborg:pie.api")
-    api("com.google.dagger:dagger")
+    api(libs.spoofax3.log.api)
+    api(libs.spoofax3.pie.api)
+    api(libs.dagger)
 
-    compileOnly("org.checkerframework:checker-qual-android")
+    compileOnly(libs.checkerframework.android)
 
-    annotationProcessor("com.google.dagger:dagger-compiler")
+    annotationProcessor(libs.dagger.compiler)
 }

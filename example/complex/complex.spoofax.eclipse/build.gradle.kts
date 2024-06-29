@@ -16,9 +16,9 @@ dependencies {
     bundleEmbedImplementation("org.slf4j:slf4j-simple")
     bundleEmbedApi(project(":complex.spoofax"))
 
-    compileOnly("org.checkerframework:checker-qual-android")
+    compileOnly(libs.checkerframework.android)
 
-    annotationProcessor("com.google.dagger:dagger-compiler")
+    annotationProcessor(libs.dagger.compiler)
 }
 
 // For Java libraries that are embedded into the bundle, and are exported (i.e., bundleEmbedApi), we need to add an

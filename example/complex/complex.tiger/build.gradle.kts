@@ -9,6 +9,6 @@ dependencies {
 
     api(project(":complex.spoofax"))
 
-    compileOnly("org.checkerframework:checker-qual-android")
-    annotationProcessor("com.google.dagger:dagger-compiler")
+    compileOnly(libs.checkerframework.android)
+    annotationProcessor(libs.dagger.compiler)
 }
