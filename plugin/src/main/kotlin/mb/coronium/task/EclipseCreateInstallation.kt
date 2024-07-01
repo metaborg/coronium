@@ -88,8 +88,6 @@ open class EclipseCreateInstallation : JavaExec() {
 
 
     init {
-        main = "-jar"
-
         baseRepositories.value(
             listOf(
                 "https://artifacts.metaborg.org/content/groups/eclipse-2022-06/"
@@ -129,10 +127,8 @@ open class EclipseCreateInstallation : JavaExec() {
         mavenizedExtension.finalizeOsArch()
         val mavenized = project.lazilyMavenize()
 
-        args(
-            mavenized.equinoxLauncherPath(),
-            "-application", "org.eclipse.equinox.p2.director"
-        )
+        classpath = project.files(mavenized.equinoxLauncherPath())
+        args("-application", "org.eclipse.equinox.p2.director")
         baseRepositories.finalizeValue()
         baseRepositories.get().forEach { args("-repository", it) }
         repositories.finalizeValue()

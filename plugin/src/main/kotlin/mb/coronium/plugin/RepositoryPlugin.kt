@@ -396,9 +396,8 @@ class RepositoryPlugin @Inject constructor(
                 repositoryDir.deleteRecursively()
                 repositoryDir.mkdirs()
                 project.javaexec {
-                    main = "-jar"
+                    classpath = project.files(eclipseLauncherPath)
                     args = mutableListOf(
-                        eclipseLauncherPath,
                         "-application", "org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher",
                         "-metadataRepository", "file:/$repositoryDir",
                         "-artifactRepository", "file:/$repositoryDir",
@@ -409,9 +408,8 @@ class RepositoryPlugin @Inject constructor(
                     )
                 }
                 project.javaexec {
-                    main = "-jar"
+                    classpath = project.files(eclipseLauncherPath)
                     args = mutableListOf(
-                        eclipseLauncherPath,
                         "-application", "org.eclipse.equinox.p2.publisher.CategoryPublisher",
                         "-metadataRepository", "file:/$repositoryDir",
                         "-categoryDefinition", "file:/$repositoryXmlFile",
