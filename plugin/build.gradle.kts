@@ -1,8 +1,8 @@
 plugins {
-    id("org.metaborg.gradle.config.root-project") version "0.5.6"
-    id("org.metaborg.gradle.config.kotlin-gradle-plugin") version "0.5.6"
-    id("org.metaborg.gradle.config.junit-testing") version "0.5.6"
-    id("org.metaborg.gitonium") version "1.2.0"
+    alias(libs.plugins.spoofax.gradle.rootproject)
+    alias(libs.plugins.spoofax.gradle.kotlin.gradleplugin)
+    alias(libs.plugins.spoofax.gradle.junit.testing)
+    alias(libs.plugins.gitonium)
     `kotlin-dsl`
 }
 
@@ -47,17 +47,14 @@ gradlePlugin {
 // Embed all dependencies into the plugin so that users do not receive the transitive dependency tree.
 val embedded: Configuration = configurations.create("embedded")
 configurations.getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(embedded)
-val mavenResolverVersion = "1.3.3"
-val mavenVersion = "3.6.0"
-val bndGradleVersion = "5.3.0"
 dependencies {
-    embedded("org.apache.maven.resolver:maven-resolver-api:$mavenResolverVersion")
-    embedded("org.apache.maven.resolver:maven-resolver-impl:$mavenResolverVersion")
-    embedded("org.apache.maven.resolver:maven-resolver-connector-basic:$mavenResolverVersion")
-    embedded("org.apache.maven.resolver:maven-resolver-transport-file:$mavenResolverVersion")
-    embedded("org.apache.maven:maven-resolver-provider:$mavenVersion")
-    embedded("org.apache.commons:commons-compress:1.18")
-    embedded("biz.aQute.bnd:biz.aQute.bnd.gradle:$bndGradleVersion")
+    embedded(libs.maven.resolver.api)
+    embedded(libs.maven.resolver.impl)
+    embedded(libs.maven.resolver.connector.basic)
+    embedded(libs.maven.resolver.transport.file)
+    embedded(libs.maven.resolver.provider)
+    embedded(libs.commons.compress)
+    embedded(libs.bnd.gradle)
 }
 tasks {
     jar {
