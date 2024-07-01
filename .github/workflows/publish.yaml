@@ -11,7 +11,7 @@ jobs:
     uses: metaborg/actions/.github/workflows/gradle-publish.yaml@main
     with:
       gradle-command: |
-        gradle assemble publish
+        gradle assembleAll publishAll
     secrets:
       METABORG_ARTIFACTS_USERNAME: ${{ secrets.METABORG_ARTIFACTS_USERNAME }}
       METABORG_ARTIFACTS_PASSWORD: ${{ secrets.METABORG_ARTIFACTS_PASSWORD }}
