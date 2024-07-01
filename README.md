@@ -2,7 +2,6 @@
 [![Build][github-build-badge]][github-build]
 [![License][license-badge]][license]
 [![GitHub Release][github-release-badge]][github-release]
-[![Documentation][documentation-badge]][documentation]
 
 Coronium is a Gradle plugin for building, developing, and publishing Eclipse plugins.
 
