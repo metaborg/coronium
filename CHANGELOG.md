@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file, based on [Keep 
 
 ## [Unreleased]
 
+## [0.4.0] - 2024-07-01
+### Changed
+- Update Bnd to 5.3.0
+
 
 ## [0.3.18] - 2024-05-27
 ### Fixed
@@ -52,7 +56,8 @@ All notable changes to this project are documented in this file, based on [Keep 
 - Base repositories and install units to be overridden in `EclipseCreateInstallation` tasks by adding `baseRepositories` and `baseInstallUnits` properties.
 
 
-[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.3.18...HEAD
+[Unreleased]: https://github.com/metaborg/coronium/compare/release-0.4.0...HEAD
+[0.4.0]: https://github.com/metaborg/coronium/compare/release-0.3.18...release-0.4.0
 [0.3.18]: https://github.com/metaborg/coronium/compare/release-0.3.17...release-0.3.18
 [0.3.17]: https://github.com/metaborg/coronium/compare/release-0.3.16...release-0.3.17
 [0.3.16]: https://github.com/metaborg/coronium/compare/release-0.3.15...release-0.3.16

@@ -66,7 +66,7 @@ Apply the bundle plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.18")
+  id("org.metaborg.coronium.bundle") version("0.4.0")
 }
 ```
 
@@ -179,7 +179,7 @@ For example, dependencies can be embedded as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.18")
+  id("org.metaborg.coronium.bundle") version("0.4.0")
 }
 
 dependencies {
@@ -237,7 +237,7 @@ Apply the feature plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.feature") version("0.3.18")
+  id("org.metaborg.coronium.feature") version("0.4.0")
 }
 ```
 
@@ -270,7 +270,7 @@ Apply the repository plugin to a project (a build.gradle(.kts) file) as follows:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.repository") version("0.3.18")
+  id("org.metaborg.coronium.repository") version("0.4.0")
 }
 ```
 
@@ -324,7 +324,7 @@ For example, to publish a Bundle:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.bundle") version("0.3.18")
+  id("org.metaborg.coronium.bundle") version("0.4.0")
   `maven-publish`
 }
 
@@ -343,7 +343,7 @@ For features:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.feature") version("0.3.18")
+  id("org.metaborg.coronium.feature") version("0.4.0")
   `maven-publish`
 }
 ```
@@ -352,7 +352,7 @@ For repositories:
 
 ```kotlin
 plugins {
-  id("org.metaborg.coronium.repository") version("0.3.18")
+  id("org.metaborg.coronium.repository") version("0.4.0")
   `maven-publish`
 }
 ```
