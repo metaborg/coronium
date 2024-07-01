@@ -14,3 +14,6 @@ on:  # yamllint disable-line rule:truthy
 jobs:
   build:
     uses: metaborg/actions/.github/workflows/gradle-build-matrix.yaml@main
+    with:
+      gradle-command: |
+        gradle buildAll
