@@ -1,13 +1,17 @@
-[![GitHub license](https://img.shields.io/github/license/metaborg/coronium)](https://github.com/metaborg/pie/blob/master/LICENSE)
-[![GitHub actions](https://img.shields.io/github/workflow/status/metaborg/coronium/Build?label=GitHub%20actions)](https://github.com/metaborg/coronium/actions/workflows/build.yml)
-[![Jenkins](https://img.shields.io/jenkins/build/https/buildfarm.metaborg.org/job/metaborg/job/coronium/job/master?label=Jenkins)](https://buildfarm.metaborg.org/job/metaborg/job/pie/job/master/lastBuild)
-[![coronium](https://img.shields.io/maven-metadata/v?label=coronium&metadataUrl=https%3A%2F%2Fartifacts.metaborg.org%2Fcontent%2Frepositories%2Freleases%2Forg%2Fmetaborg%2Fcoronium%2Fmaven-metadata.xml)](https://mvnrepository.com/artifact/org.metaborg/coronium?repo=metaborg-releases)
-
-
 # Coronium
+[![Build][github-build-badge]][github-build]
+[![License][license-badge]][license]
+[![GitHub Release][github-release-badge]][github-release]
+[![Documentation][documentation-badge]][documentation]
 
 Coronium is a Gradle plugin for building, developing, and publishing Eclipse plugins.
-See `CHANGELOG.md` for a list of releases and notable changes to this repository.
+
+
+| Artifact                | Latest Release                                 |
+|-------------------------|------------------------------------------------|
+| `org.metaborg.coronium` | [![org.metaborg.coronium][maven-badge]][maven] |
+
+
 
 ## Status
 
@@ -420,9 +424,21 @@ publish.repository.metaborg.artifacts.password=<password>
 Then run `./gradlew publishAll` to publish all built artifacts.
 You should also push the release tag you made such that this release is reproducible by others.
 
-## Copyright and License
 
-Copyright © 2018-2022 Delft University of Technology
+## License
+Copyright 2018-2024 Delft University of Technology
 
-The files in this repository are licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
-You may use the files in this repository in compliance with the license.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at <https://www.apache.org/licenses/LICENSE-2.0>
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an **"as is" basis, without warranties or conditions of any kind**, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+
+[github-build-badge]: https://img.shields.io/github/actions/workflow/status/metaborg/coronium/build.yaml
+[github-build]: https://github.com/metaborg/coronium/actions
+[license-badge]: https://img.shields.io/github/license/metaborg/coronium
+[license]: https://github.com/metaborg/coronium/blob/master/LICENSE
+[github-release-badge]: https://img.shields.io/github/v/release/metaborg/coronium
+[github-release]: https://github.com/metaborg/coronium/releases
+
+[maven-badge]: https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fartifacts.metaborg.org%2Fcontent%2Frepositories%2Freleases%2Forg%2Fmetaborg%2Fcoronium%2Fmaven-metadata.xml
+[maven]: https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg~coronium~~~
