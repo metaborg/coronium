@@ -118,7 +118,7 @@ open class EclipseCreateInstallation : JavaExec() {
         os.convention(Os.current())
         arch.convention(Arch.current())
 
-        iniRequiredJavaVersion.convention("11")
+        iniRequiredJavaVersion.convention("17")
         iniStackSize.convention("16M")
         iniMaxHeapSize.convention("4G")
     }
