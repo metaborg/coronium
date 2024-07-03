@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.spoofax.gradle.rootproject)
+    alias(libs.plugins.metaborg.gradle.rootproject)
     alias(libs.plugins.gitonium)
 
     // Set versions for plugins to use, only applying them in subprojects (apply false here).
