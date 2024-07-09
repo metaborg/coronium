@@ -1,5 +1,6 @@
 rootProject.name = "coronium"
 
+// This allows us to use plugins from Metaborg Artifacts
 pluginManagement {
     repositories {
         maven("https://artifacts.metaborg.org/content/groups/public/")
@@ -16,4 +17,9 @@ dependencyResolutionManagement {
             from("org.metaborg.spoofax3:catalog:0.2.2")
         }
     }
+}
+
+// This downloads an appropriate JVM if not already available
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
