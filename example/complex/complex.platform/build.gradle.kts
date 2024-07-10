@@ -5,12 +5,12 @@ plugins {
 
 dependencies {
     constraints {
-        api(libs.spoofax3.log.api)
-        api(libs.spoofax3.log.backend.slf4j)
+        api(libs.metaborg.log.api)
+        api(libs.metaborg.log.backend.slf4j)
         api(libs.slf4j.simple)
-        api(libs.spoofax3.pie.api)
-        api(libs.spoofax3.pie.runtime)
-        api(libs.spoofax3.pie.dagger)
+        api(libs.metaborg.pie.api)
+        api(libs.metaborg.pie.runtime)
+        api(libs.metaborg.pie.dagger)
         api(libs.javax.inject)
         api(libs.checkerframework.android)
         api(libs.dagger)

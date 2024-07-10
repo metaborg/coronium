@@ -1,7 +1,7 @@
 plugins {
-    alias(libs.plugins.spoofax.gradle.rootproject)
-    alias(libs.plugins.spoofax.gradle.kotlin.gradleplugin)
-    alias(libs.plugins.spoofax.gradle.junit.testing)
+    alias(libs.plugins.metaborg.gradle.rootproject)
+    alias(libs.plugins.metaborg.gradle.kotlin.gradleplugin)
+    alias(libs.plugins.metaborg.gradle.junit.testing)
     alias(libs.plugins.gitonium)
     `kotlin-dsl`
 }
