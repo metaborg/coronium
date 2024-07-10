@@ -11,12 +11,6 @@ plugins {
 }
 
 
-// Only include composite builds when this is the root project (it has no parent), for example when running Gradle tasks
-// from the command-line. Otherwise, the parent project will include these composite builds.
-if (gradle.parent == null) {
-    includeBuild("../plugin")
-}
-
 fun String.includeProject(id: String, path: String = "$this/$id") {
     include(id)
     project(":$id").projectDir = file(path)
