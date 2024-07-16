@@ -22,7 +22,7 @@ allprojects {
     }
 
     repositories {
-        maven(url = "https://artifacts.metaborg.org/content/groups/public/")
+        maven("https://artifacts.metaborg.org/content/groups/public/")
         mavenCentral()
     }
 }
