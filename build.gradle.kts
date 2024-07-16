@@ -17,4 +17,9 @@ allprojects {
             repoName.set("coronium")
         }
     }
+
+    repositories {
+        maven(url = "https://artifacts.metaborg.org/content/groups/public/")
+        mavenCentral()
+    }
 }

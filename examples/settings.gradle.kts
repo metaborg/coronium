@@ -3,6 +3,7 @@ rootProject.name = "coronium.example"
 pluginManagement {
     repositories {
         maven("https://artifacts.metaborg.org/content/groups/public/")
+        mavenCentral()
     }
 }
 
