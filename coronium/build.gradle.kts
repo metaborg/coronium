@@ -6,6 +6,7 @@ plugins {
     `kotlin-dsl`
 }
 
+version = gitonium.version
 group = "org.metaborg"
 
 repositories {
