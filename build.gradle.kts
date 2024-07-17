@@ -1,10 +1,13 @@
 import org.metaborg.convention.MavenPublishConventionExtension
 
 plugins {
-    alias(libs.plugins.metaborg.gradle.rootproject)
+    id("org.metaborg.convention.root-project")
     alias(libs.plugins.gitonium)
 }
 
+gitonium {
+    mainBranch.set("master")
+}
 
 allprojects {
     apply(plugin = "org.metaborg.gitonium")

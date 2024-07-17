@@ -1,13 +1,23 @@
 plugins {
-    alias(libs.plugins.metaborg.gradle.rootproject)
-    alias(libs.plugins.metaborg.gradle.kotlin.gradleplugin)
-    alias(libs.plugins.metaborg.gradle.junit.testing)
-    alias(libs.plugins.gitonium)
+    `java-library`
+    id("org.metaborg.convention.java")
+    id("org.metaborg.convention.maven-publish")
     `kotlin-dsl`
+    `java-gradle-plugin`
+    alias(libs.plugins.gitonium)
+}
+
+gitonium {
+    mainBranch.set("master")
 }
 
 version = gitonium.version
 group = "org.metaborg"
+
+mavenPublishConvention {
+    repoOwner.set("metaborg")
+    repoName.set("coronium")
+}
 
 gradlePlugin {
     plugins {
@@ -51,7 +61,9 @@ dependencies {
     embedded(libs.maven.resolver.provider)
     embedded(libs.commons.compress)
     embedded(libs.bnd.gradle)
+    testImplementation(libs.junit)
 }
+
 tasks {
     jar {
         // Closure inside from to defer evaluation of configuration until task execution time.
