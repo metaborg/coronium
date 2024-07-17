@@ -15,7 +15,7 @@ pluginManagement {
 }
 
 plugins {
-    id("org.metaborg.convention.settings") version "0.7.3"
+    id("org.metaborg.convention.settings") version "0.8.1"
 }
 
 // We split the build up into one main composite build in the 'plugin' directory, because it builds Gradle plugins,
