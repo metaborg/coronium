@@ -9,11 +9,6 @@ plugins {
 version = gitonium.version
 group = "org.metaborg"
 
-repositories {
-    maven("https://artifacts.metaborg.org/content/groups/public/")
-    mavenCentral() // Backup
-}
-
 gradlePlugin {
     plugins {
         create("coronium-bundle-base") {
