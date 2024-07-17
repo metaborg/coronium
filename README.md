@@ -1,13 +1,19 @@
-[![GitHub license](https://img.shields.io/github/license/metaborg/coronium)](https://github.com/metaborg/pie/blob/master/LICENSE)
-[![GitHub actions](https://img.shields.io/github/workflow/status/metaborg/coronium/Build?label=GitHub%20actions)](https://github.com/metaborg/coronium/actions/workflows/build.yml)
-[![Jenkins](https://img.shields.io/jenkins/build/https/buildfarm.metaborg.org/job/metaborg/job/coronium/job/master?label=Jenkins)](https://buildfarm.metaborg.org/job/metaborg/job/pie/job/master/lastBuild)
-[![coronium](https://img.shields.io/maven-metadata/v?label=coronium&metadataUrl=https%3A%2F%2Fartifacts.metaborg.org%2Fcontent%2Frepositories%2Freleases%2Forg%2Fmetaborg%2Fcoronium%2Fmaven-metadata.xml)](https://mvnrepository.com/artifact/org.metaborg/coronium?repo=metaborg-releases)
-
-
 # Coronium
+[![Build][github-badge:build]][github:build]
+[![License][license-badge]][license]
+[![GitHub Release][github-badge:release]][github:release]
 
-Coronium is a Gradle plugin for building, developing, and publishing Eclipse plugins.
-See `CHANGELOG.md` for a list of releases and notable changes to this repository.
+A Gradle plugin for building, developing, and publishing Eclipse plugins.
+
+| Gradle Plugin                            | Latest Release                                                                      | Latest Snapshot                                                                       |
+|------------------------------------------|-------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| `org.metaborg.coronium.bundle.base`      | [![Release][mvn-rel-badge:coronium.bundle.base]][mvn:coronium.bundle.base]          | [![Snapshot][mvn-snap-badge:coronium.bundle.base]][mvn:coronium.bundle.base]          |
+| `org.metaborg.coronium.bundle`           | [![Release][mvn-rel-badge:coronium.bundle]][mvn:coronium.bundle]                    | [![Snapshot][mvn-snap-badge:coronium.bundle]][mvn:coronium.bundle]                    |
+| `org.metaborg.coronium.feature.base`     | [![Release][mvn-rel-badge:coronium.feature.base]][mvn:coronium.feature.base]        | [![Snapshot][mvn-snap-badge:coronium.feature.base]][mvn:coronium.feature.base]        |
+| `org.metaborg.coronium.feature`          | [![Release][mvn-rel-badge:coronium.feature]][mvn:coronium.feature]                  | [![Snapshot][mvn-snap-badge:coronium.feature]][mvn:coronium.feature]                  |
+| `org.metaborg.coronium.repository.base`  | [![Release][mvn-rel-badge:coronium.repository.base]][mvn:coronium.repository.base]  | [![Snapshot][mvn-snap-badge:coronium.repository.base]][mvn:coronium.repository.base]  |
+| `org.metaborg.coronium.repository`       | [![Release][mvn-rel-badge:coronium.repository]][mvn:coronium.repository]            | [![Snapshot][mvn-snap-badge:coronium.repository]][mvn:coronium.repository]            |
+
 
 ## Status
 
@@ -420,9 +426,40 @@ publish.repository.metaborg.artifacts.password=<password>
 Then run `./gradlew publishAll` to publish all built artifacts.
 You should also push the release tag you made such that this release is reproducible by others.
 
-## Copyright and License
 
-Copyright © 2018-2022 Delft University of Technology
+## License
+Copyright 2018-2024 Delft University of Technology
 
-The files in this repository are licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
-You may use the files in this repository in compliance with the license.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at <https://www.apache.org/licenses/LICENSE-2.0>
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an **"as is" basis, without warranties or conditions of any kind**, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+
+[github-badge:build]: https://img.shields.io/github/actions/workflow/status/metaborg/metaborg-gradle/build.yaml
+[github:build]: https://github.com/metaborg/coronium/actions
+[license-badge]: https://img.shields.io/github/license/metaborg/coronium
+[license]: https://github.com/metaborg/coronium/blob/main/LICENSE
+[github-badge:release]: https://img.shields.io/github/v/release/metaborg/coronium?display_name=release
+[github:release]: https://github.com/metaborg/coronium/releases
+
+[mvn:coronium.bundle.base]:               https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.bundle.base~org.metaborg.coronium.bundle.base.gradle.plugin~~~
+[mvn:coronium.bundle]:                    https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.bundle~org.metaborg.coronium.bundle.gradle.plugin~~~
+[mvn:coronium.feature.base]:              https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.feature.base~org.metaborg.coronium.feature.base.gradle.plugin~~~
+[mvn:coronium.feature]:                   https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.feature~org.metaborg.coronium.feature.gradle.plugin~~~
+[mvn:coronium.repository.base]:           https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.repository.base~org.metaborg.coronium.repository.base.gradle.plugin~~~
+[mvn:coronium.repository]:                https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.repository~org.metaborg.coronium.repository.gradle.plugin~~~
+
+[mvn-rel-badge:coronium.bundle.base]:     https://img.shields.io/nexus/r/org.metaborg.coronium.bundle.base/org.metaborg.coronium.bundle.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-rel-badge:coronium.bundle]:          https://img.shields.io/nexus/r/org.metaborg.coronium.bundle/org.metaborg.coronium.bundle.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-rel-badge:coronium.feature.base]:    https://img.shields.io/nexus/r/org.metaborg.coronium.feature.base/org.metaborg.coronium.feature.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-rel-badge:coronium.feature]:         https://img.shields.io/nexus/r/org.metaborg.coronium.feature/org.metaborg.coronium.feature.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-rel-badge:coronium.repository.base]: https://img.shields.io/nexus/r/org.metaborg.coronium.repository.base/org.metaborg.coronium.repository.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-rel-badge:coronium.repository]:      https://img.shields.io/nexus/r/org.metaborg.coronium.repository/org.metaborg.coronium.repository.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+
+[mvn-snap-badge:coronium.bundle.base]:     https://img.shields.io/nexus/s/org.metaborg.coronium.bundle.base/org.metaborg.coronium.bundle.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:coronium.bundle]:          https://img.shields.io/nexus/s/org.metaborg.coronium.bundle/org.metaborg.coronium.bundle.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:coronium.feature.base]:    https://img.shields.io/nexus/s/org.metaborg.coronium.feature.base/org.metaborg.coronium.feature.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:coronium.feature]:         https://img.shields.io/nexus/s/org.metaborg.coronium.feature/org.metaborg.coronium.feature.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:coronium.repository.base]: https://img.shields.io/nexus/s/org.metaborg.coronium.repository.base/org.metaborg.coronium.repository.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:coronium.repository]:      https://img.shields.io/nexus/s/org.metaborg.coronium.repository/org.metaborg.coronium.repository.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+
