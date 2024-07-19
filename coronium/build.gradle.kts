@@ -2,6 +2,7 @@ plugins {
     `java-library`
     id("org.metaborg.convention.java")
     id("org.metaborg.convention.maven-publish")
+    id("org.metaborg.convention.junit")
     `kotlin-dsl`
     `java-gradle-plugin`
     alias(libs.plugins.gitonium)
@@ -61,7 +62,6 @@ dependencies {
     embedded(libs.maven.resolver.provider)
     embedded(libs.commons.compress)
     embedded(libs.bnd.gradle)
-    testImplementation(libs.junit)
 }
 
 tasks {
