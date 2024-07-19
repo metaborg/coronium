@@ -74,6 +74,12 @@ class MavenizePlugin : Plugin<Project> {
         val extension = MavenizeExtension(project)
         project.extensions.add("mavenize", extension)
 
+        // NOTE: As this plugin changes the project's repositories, if the project uses a
+        //  dependencyResolutionManagement.repositories block, it must re-declare the repositories
+        //  in the project itself. The repositories of dependencyResolutionManagement.repositories
+        //  are overridden once a project defines its own repositories.
+        // All Coronium plugins (bundle, feature, repository) use the Mavenize plugin
+        // TODO: Add the above to the Coronium (mavenize plugin) documentation
         @Suppress("UnstableApiUsage")
         project.repositories {
             maven {
