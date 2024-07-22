@@ -1,3 +1,5 @@
+// Workaround for issue: https://youtrack.jetbrains.com/issue/KTIJ-19369
+@Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     `java-library`
     id("org.metaborg.convention.java")
