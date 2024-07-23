@@ -72,7 +72,7 @@ open class EclipseInstallationAddJvm : DefaultTask() {
     init {
         dependsOn(createTask)
 
-        jvmVersion.convention("11.0.22+7")
+        jvmVersion.convention("17.0.11+9")
         jvmDownloadUrl.convention(os.flatMap { os ->
             arch.flatMap { arch ->
                 jvmDownloadVersion.map { version ->

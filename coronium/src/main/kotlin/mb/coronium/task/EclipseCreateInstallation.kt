@@ -118,7 +118,7 @@ open class EclipseCreateInstallation : JavaExec() {
         os.convention(Os.current())
         arch.convention(Arch.current())
 
-        iniRequiredJavaVersion.convention("11")
+        iniRequiredJavaVersion.convention("17")
         iniStackSize.convention("16M")
         iniMaxHeapSize.convention("4G")
     }
@@ -174,6 +174,16 @@ open class EclipseCreateInstallation : JavaExec() {
         iniFileText = iniFileText.replace(Regex("""-X(ms|ss|mx)[0-9]+[gGmMkK]"""), "")
 
         iniFileText += "--add-modules=ALL-SYSTEM\n"
+        // On Java 17+ we need to open some base packages for reflection
+        //  See: https://github.com/RuedigerMoeller/fast-serialization/issues/327#issuecomment-1593789316
+        iniFileText += "--add-opens=java.base/java.io=ALL-UNNAMED\n"
+        iniFileText += "--add-opens=java.base/java.lang=ALL-UNNAMED\n"
+        iniFileText += "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED\n"
+        iniFileText += "--add-opens=java.base/java.math=ALL-UNNAMED\n"
+        iniFileText += "--add-opens=java.base/java.net=ALL-UNNAMED\n"
+        iniFileText += "--add-opens=java.base/java.text=ALL-UNNAMED\n"
+        iniFileText += "--add-opens=java.base/java.util=ALL-UNNAMED\n"
+        iniFileText += "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED\n"
         if (os.get() == Os.OSX) {
             iniFileText += "-XstartOnFirstThread\n"
         }
