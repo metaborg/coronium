@@ -1,6 +1,5 @@
 plugins {
     id("org.metaborg.coronium.feature")
-    `maven-publish`
 }
 
 // This is a copy of dependencyManagement in the root project's settings.gradle.kts,

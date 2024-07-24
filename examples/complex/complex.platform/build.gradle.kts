@@ -1,6 +1,5 @@
 plugins {
     `java-platform`
-    `maven-publish`
 }
 
 dependencies {

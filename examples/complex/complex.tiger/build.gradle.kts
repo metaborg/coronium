@@ -1,7 +1,6 @@
 plugins {
     `java-library`
     id("org.metaborg.convention.java")
-    id("org.metaborg.convention.maven-publish")
 }
 
 dependencies {
