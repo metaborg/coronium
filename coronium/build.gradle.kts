@@ -1,3 +1,5 @@
+import org.metaborg.convention.Developer
+
 // Workaround for issue: https://youtrack.jetbrains.com/issue/KTIJ-19369
 @Suppress("DSL_SCOPE_VIOLATION")
 plugins {
@@ -20,6 +22,14 @@ group = "org.metaborg"
 mavenPublishConvention {
     repoOwner.set("metaborg")
     repoName.set("coronium")
+
+    metadata {
+        inceptionYear.set("2018")
+        developers.set(listOf(
+            Developer("Gohla", "Gabriel Konat", "gabrielkonat@gmail.com"),
+            Developer("Virtlink", "Daniel A. A. Pelsmaeker", "developer@pelsmaeker.net"),
+        ))
+    }
 }
 
 gradlePlugin {
