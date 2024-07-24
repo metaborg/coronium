@@ -10,7 +10,7 @@ dependencies {
         api(libs.metaborg.pie.api)
         api(libs.metaborg.pie.runtime)
         api(libs.metaborg.pie.dagger)
-        api(libs.javax.inject)
+        api(libs.jakarta.inject)
         api(libs.checkerframework.android)
         api(libs.dagger)
         api(libs.dagger.compiler)

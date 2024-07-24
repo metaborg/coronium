@@ -16,7 +16,7 @@ dependencies {
     api(platform(project(":complex.platform")))
     annotationProcessor(platform(project(":complex.platform")))
 
-    bundleTargetPlatformApi(eclipse("javax.inject"))
+    bundleTargetPlatformApi(eclipse("jakarta.inject-api"))
     bundleTargetPlatformApi(eclipse("org.eclipse.core.runtime"))
     bundleTargetPlatformApi(eclipse("org.eclipse.ui"))
 
