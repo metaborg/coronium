@@ -16,11 +16,3 @@ dependencies {
         api(libs.dagger.compiler)
     }
 }
-
-publishing {
-    publications {
-        create<MavenPublication>("JavaPlatform") {
-            from(components["javaPlatform"])
-        }
-    }
-}
