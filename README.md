@@ -5,15 +5,17 @@
 
 A Gradle plugin for building, developing, and publishing Eclipse plugins.
 
-| Gradle Plugin                            | Latest Release                                                                      | Latest Snapshot                                                                       |
-|------------------------------------------|-------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| `org.metaborg.coronium.bundle.base`      | [![Release][mvn-rel-badge:coronium.bundle.base]][mvn:coronium.bundle.base]          | [![Snapshot][mvn-snap-badge:coronium.bundle.base]][mvn:coronium.bundle.base]          |
-| `org.metaborg.coronium.bundle`           | [![Release][mvn-rel-badge:coronium.bundle]][mvn:coronium.bundle]                    | [![Snapshot][mvn-snap-badge:coronium.bundle]][mvn:coronium.bundle]                    |
-| `org.metaborg.coronium.feature.base`     | [![Release][mvn-rel-badge:coronium.feature.base]][mvn:coronium.feature.base]        | [![Snapshot][mvn-snap-badge:coronium.feature.base]][mvn:coronium.feature.base]        |
-| `org.metaborg.coronium.feature`          | [![Release][mvn-rel-badge:coronium.feature]][mvn:coronium.feature]                  | [![Snapshot][mvn-snap-badge:coronium.feature]][mvn:coronium.feature]                  |
-| `org.metaborg.coronium.repository.base`  | [![Release][mvn-rel-badge:coronium.repository.base]][mvn:coronium.repository.base]  | [![Snapshot][mvn-snap-badge:coronium.repository.base]][mvn:coronium.repository.base]  |
-| `org.metaborg.coronium.repository`       | [![Release][mvn-rel-badge:coronium.repository]][mvn:coronium.repository]            | [![Snapshot][mvn-snap-badge:coronium.repository]][mvn:coronium.repository]            |
 
+
+
+| Gradle Plugin | Latest Release | Latest Snapshot |
+|---------------|----------------|-----------------|
+| `org.metaborg.coronium.bundle` | [![Release][mvn-rel-badge:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin]][mvn:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin]][mvn:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin] |
+| `org.metaborg.coronium.feature` | [![Release][mvn-rel-badge:org.metaborg.coronium.feature:org.metaborg.coronium.feature.gradle.plugin]][mvn:org.metaborg.coronium.feature:org.metaborg.coronium.feature.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.feature:org.metaborg.coronium.feature.gradle.plugin]][mvn:org.metaborg.coronium.feature:org.metaborg.coronium.feature.gradle.plugin] |
+| `org.metaborg.coronium.repository` | [![Release][mvn-rel-badge:org.metaborg.coronium.repository:org.metaborg.coronium.repository.gradle.plugin]][mvn:org.metaborg.coronium.repository:org.metaborg.coronium.repository.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.repository:org.metaborg.coronium.repository.gradle.plugin]][mvn:org.metaborg.coronium.repository:org.metaborg.coronium.repository.gradle.plugin] |
+| `org.metaborg.coronium.bundle.base` | [![Release][mvn-rel-badge:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin]][mvn:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin]][mvn:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin] |
+| `org.metaborg.coronium.feature.base` | [![Release][mvn-rel-badge:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin]][mvn:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin]][mvn:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin] |
+| `org.metaborg.coronium.repository.base` | [![Release][mvn-rel-badge:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin]][mvn:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin]][mvn:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin] |
 
 ## Status
 
@@ -434,32 +436,28 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an **"as is" basis, without warranties or conditions of any kind**, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-
-[github-badge:build]: https://img.shields.io/github/actions/workflow/status/metaborg/metaborg-gradle/build.yaml
+[github-badge:build]: https://img.shields.io/github/actions/workflow/status/metaborg/coronium/build.yaml
 [github:build]: https://github.com/metaborg/coronium/actions
 [license-badge]: https://img.shields.io/github/license/metaborg/coronium
-[license]: https://github.com/metaborg/coronium/blob/main/LICENSE
+[license]: https://github.com/metaborg/coronium/blob/master/LICENSE.md
 [github-badge:release]: https://img.shields.io/github/v/release/metaborg/coronium?display_name=release
 [github:release]: https://github.com/metaborg/coronium/releases
 
-[mvn:coronium.bundle.base]:               https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.bundle.base~org.metaborg.coronium.bundle.base.gradle.plugin~~~
-[mvn:coronium.bundle]:                    https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.bundle~org.metaborg.coronium.bundle.gradle.plugin~~~
-[mvn:coronium.feature.base]:              https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.feature.base~org.metaborg.coronium.feature.base.gradle.plugin~~~
-[mvn:coronium.feature]:                   https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.feature~org.metaborg.coronium.feature.gradle.plugin~~~
-[mvn:coronium.repository.base]:           https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.repository.base~org.metaborg.coronium.repository.base.gradle.plugin~~~
-[mvn:coronium.repository]:                https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.repository~org.metaborg.coronium.repository.gradle.plugin~~~
-
-[mvn-rel-badge:coronium.bundle.base]:     https://img.shields.io/nexus/r/org.metaborg.coronium.bundle.base/org.metaborg.coronium.bundle.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-rel-badge:coronium.bundle]:          https://img.shields.io/nexus/r/org.metaborg.coronium.bundle/org.metaborg.coronium.bundle.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-rel-badge:coronium.feature.base]:    https://img.shields.io/nexus/r/org.metaborg.coronium.feature.base/org.metaborg.coronium.feature.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-rel-badge:coronium.feature]:         https://img.shields.io/nexus/r/org.metaborg.coronium.feature/org.metaborg.coronium.feature.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-rel-badge:coronium.repository.base]: https://img.shields.io/nexus/r/org.metaborg.coronium.repository.base/org.metaborg.coronium.repository.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-rel-badge:coronium.repository]:      https://img.shields.io/nexus/r/org.metaborg.coronium.repository/org.metaborg.coronium.repository.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-
-[mvn-snap-badge:coronium.bundle.base]:     https://img.shields.io/nexus/s/org.metaborg.coronium.bundle.base/org.metaborg.coronium.bundle.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-snap-badge:coronium.bundle]:          https://img.shields.io/nexus/s/org.metaborg.coronium.bundle/org.metaborg.coronium.bundle.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-snap-badge:coronium.feature.base]:    https://img.shields.io/nexus/s/org.metaborg.coronium.feature.base/org.metaborg.coronium.feature.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-snap-badge:coronium.feature]:         https://img.shields.io/nexus/s/org.metaborg.coronium.feature/org.metaborg.coronium.feature.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-snap-badge:coronium.repository.base]: https://img.shields.io/nexus/s/org.metaborg.coronium.repository.base/org.metaborg.coronium.repository.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-[mvn-snap-badge:coronium.repository]:      https://img.shields.io/nexus/s/org.metaborg.coronium.repository/org.metaborg.coronium.repository.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
-
+[mvn:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin]: https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.bundle~org.metaborg.coronium.bundle.gradle.plugin~~~
+[mvn-rel-badge:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin]: https://img.shields.io/nexus/r/org.metaborg.coronium.bundle/org.metaborg.coronium.bundle.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin]: https://img.shields.io/nexus/s/org.metaborg.coronium.bundle/org.metaborg.coronium.bundle.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn:org.metaborg.coronium.feature:org.metaborg.coronium.feature.gradle.plugin]: https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.feature~org.metaborg.coronium.feature.gradle.plugin~~~
+[mvn-rel-badge:org.metaborg.coronium.feature:org.metaborg.coronium.feature.gradle.plugin]: https://img.shields.io/nexus/r/org.metaborg.coronium.feature/org.metaborg.coronium.feature.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:org.metaborg.coronium.feature:org.metaborg.coronium.feature.gradle.plugin]: https://img.shields.io/nexus/s/org.metaborg.coronium.feature/org.metaborg.coronium.feature.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn:org.metaborg.coronium.repository:org.metaborg.coronium.repository.gradle.plugin]: https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.repository~org.metaborg.coronium.repository.gradle.plugin~~~
+[mvn-rel-badge:org.metaborg.coronium.repository:org.metaborg.coronium.repository.gradle.plugin]: https://img.shields.io/nexus/r/org.metaborg.coronium.repository/org.metaborg.coronium.repository.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:org.metaborg.coronium.repository:org.metaborg.coronium.repository.gradle.plugin]: https://img.shields.io/nexus/s/org.metaborg.coronium.repository/org.metaborg.coronium.repository.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin]: https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.bundle.base~org.metaborg.coronium.bundle.base.gradle.plugin~~~
+[mvn-rel-badge:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin]: https://img.shields.io/nexus/r/org.metaborg.coronium.bundle.base/org.metaborg.coronium.bundle.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin]: https://img.shields.io/nexus/s/org.metaborg.coronium.bundle.base/org.metaborg.coronium.bundle.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin]: https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.feature.base~org.metaborg.coronium.feature.base.gradle.plugin~~~
+[mvn-rel-badge:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin]: https://img.shields.io/nexus/r/org.metaborg.coronium.feature.base/org.metaborg.coronium.feature.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin]: https://img.shields.io/nexus/s/org.metaborg.coronium.feature.base/org.metaborg.coronium.feature.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin]: https://artifacts.metaborg.org/#nexus-search;gav~org.metaborg.coronium.repository.base~org.metaborg.coronium.repository.base.gradle.plugin~~~
+[mvn-rel-badge:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin]: https://img.shields.io/nexus/r/org.metaborg.coronium.repository.base/org.metaborg.coronium.repository.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
+[mvn-snap-badge:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin]: https://img.shields.io/nexus/s/org.metaborg.coronium.repository.base/org.metaborg.coronium.repository.base.gradle.plugin?server=https%3A%2F%2Fartifacts.metaborg.org&label=%20
