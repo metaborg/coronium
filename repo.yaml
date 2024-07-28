@@ -25,10 +25,8 @@ plugins:
 developers:
   - id: "Gohla"
     name: "Gabriel Konat"
-    email: "gabrielkonat@gmail.com"
   - id: "Virtlink"
     name: "Daniel A. A. Pelsmaeker"
-    email: "developer@pelsmaeker.net"
 
 files:
   githubWorkflows:
@@ -36,6 +34,12 @@ files:
     publishSnapshot: true
     publishTask: ":coronium:publish"
     printVersionTask: ":coronium:printVersion"
+  gradleRootProject:
+    createPublishTasks: true
+    rootProjectName: "coronium.root"
+    includedBuild:
+      - path: "coronium/"
+      - path: "examples/"
   readme:
     body: |
       ## Status

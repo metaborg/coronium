@@ -1,4 +1,4 @@
-import org.metaborg.convention.Developer
+import org.metaborg.convention.Person
 
 // Workaround for issue: https://youtrack.jetbrains.com/issue/KTIJ-19369
 @Suppress("DSL_SCOPE_VIOLATION")
@@ -26,8 +26,8 @@ mavenPublishConvention {
     metadata {
         inceptionYear.set("2018")
         developers.set(listOf(
-            Developer("Gohla", "Gabriel Konat", "gabrielkonat@gmail.com"),
-            Developer("Virtlink", "Daniel A. A. Pelsmaeker", "developer@pelsmaeker.net"),
+            Person("Gohla", "Gabriel Konat", "gabrielkonat@gmail.com"),
+            Person("Virtlink", "Daniel A. A. Pelsmaeker", "developer@pelsmaeker.net"),
         ))
     }
 }
