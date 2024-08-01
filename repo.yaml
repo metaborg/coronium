@@ -8,7 +8,7 @@ description: |
   A Gradle plugin for building, developing, and publishing Eclipse plugins.
 inceptionYear: "2018"
 
-plugins:
+spoofax3Plugins:
   - id: "org.metaborg.coronium.bundle"
     description: "Eclipse bundle plugin"
   - id: "org.metaborg.coronium.feature"
@@ -22,11 +22,17 @@ plugins:
   - id: "org.metaborg.coronium.repository.base"
     description: "Eclipse repository plugin base"
 
-developers:
+contributors:
   - id: "Gohla"
     name: "Gabriel Konat"
   - id: "Virtlink"
     name: "Daniel A. A. Pelsmaeker"
+  - id: "Apanatshka"
+    name: "Jeff Smits"
+
+developers:
+  - id: "Apanatshka"
+    name: "Jeff Smits"
 
 files:
   githubWorkflows:
@@ -37,9 +43,11 @@ files:
   gradleRootProject:
     createPublishTasks: true
     rootProjectName: "coronium.root"
-    includedBuild:
+    includedBuilds:
       - path: "coronium/"
       - path: "examples/"
+  githubIssueTemplates:
+    generate: false
   readme:
     body: |
       ## Status
