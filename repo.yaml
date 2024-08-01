@@ -41,13 +41,11 @@ files:
     publishTask: ":coronium:publish"
     printVersionTask: ":coronium:printVersion"
   gradleRootProject:
-    createPublishTasks: true
+    generate: true
     rootProjectName: "coronium.root"
     includedBuilds:
       - path: "coronium/"
       - path: "examples/"
-  githubIssueTemplates:
-    generate: false
   readme:
     body: |
       ## Status

@@ -14,6 +14,8 @@ A Gradle plugin for building, developing, and publishing Eclipse plugins.
 
 ## Spoofax 3 Artifacts
 
+
+
 | Gradle Plugin | Latest Release | Latest Snapshot |
 |---------------|----------------|-----------------|
 | `org.metaborg.coronium.bundle` | [![Release][mvn-rel-badge:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin]][mvn:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin]][mvn:org.metaborg.coronium.bundle:org.metaborg.coronium.bundle.gradle.plugin] |
@@ -22,6 +24,7 @@ A Gradle plugin for building, developing, and publishing Eclipse plugins.
 | `org.metaborg.coronium.bundle.base` | [![Release][mvn-rel-badge:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin]][mvn:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin]][mvn:org.metaborg.coronium.bundle.base:org.metaborg.coronium.bundle.base.gradle.plugin] |
 | `org.metaborg.coronium.feature.base` | [![Release][mvn-rel-badge:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin]][mvn:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin]][mvn:org.metaborg.coronium.feature.base:org.metaborg.coronium.feature.base.gradle.plugin] |
 | `org.metaborg.coronium.repository.base` | [![Release][mvn-rel-badge:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin]][mvn:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin] | [![Snapshot][mvn-snap-badge:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin]][mvn:org.metaborg.coronium.repository.base:org.metaborg.coronium.repository.base.gradle.plugin] |
+
 
 
 ## Status
