@@ -244,7 +244,7 @@ class BundlePlugin : Plugin<Project> {
                     }
                     if (properties.outputDir != null) {
                         @Suppress("UnstableApiUsage")
-                        outputDir = project.file(properties.outputDir)
+                        destinationDirectory.set(project.file(properties.outputDir))
                     }
                 }
             }

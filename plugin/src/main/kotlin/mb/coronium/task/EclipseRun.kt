@@ -34,7 +34,6 @@ open class EclipseRun : JavaExec() {
         product.convention("org.eclipse.platform.ide")
 
         workingDir = eclipseRunConfigFile.parent.toFile()
-        main = "-Dosgi.configuration.cascaded=true"
     }
 
 
@@ -67,12 +66,14 @@ open class EclipseRun : JavaExec() {
         mavenizedExtension.finalizeOsArch()
         val mavenized = project.lazilyMavenize()
 
+        classpath = project.files(mavenized.equinoxLauncherPath())
+
         args(mavenizedExtension.os.get().eclipseExtraJvmArgs)
         args(
+            "-Dosgi.configuration.cascaded=true",
             "-Dosgi.sharedConfiguration.area=.",
             "-Dosgi.sharedConfiguration.area.readOnly=true",
             "-Dosgi.configuration.area=configuration",
-            "-jar", mavenized.equinoxLauncherPath(),
             "-clean", // Clean the OSGi cache so that rewiring occurs, which is needed when bundles change.
             "-data", "workspace",
             "-consoleLog"
